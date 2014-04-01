@@ -1,20 +1,22 @@
 # -*- encoding: utf-8 -*-
 from mock import MagicMock
 from sure import expect
-from providers import Provider
 from flask import abort
+
+from itseme.providers import Provider
+from itseme import app
 
 import unittest
 import json
-import app
+
 import yaml
 
 
 class TestV1Api(unittest.TestCase):
 
     def setUp(self):
-        self.database = yaml.load(open("test_data.yml"))
-        app.app.config.from_object("config.TestConfig")
+        self.database = yaml.load(open("tests/test_data.yml"))
+        app.app.config.from_object("itseme.config.TestConfig")
         app._get_db = lambda: self.database
 
         self.client = app.app.test_client()
@@ -188,6 +190,27 @@ class TestV1Api(unittest.TestCase):
         expect(db_entry["provider_id"]).to.equal("tommy diddle")
         expect(db_entry["provider"]).to.equal("space")
         expect(db_entry["target"]).to.equal("my_jab er@example.com")
+
+        mock_provider.register.assert_called_once_with(self.database[key])
+
+
+    def test_register_selfapprove_xmpp(self):
+
+        mock_provider = MagicMock(spec=Provider)
+        mock_provider.register.return_value = {"xmpp": "message is out"}
+        app.PROVIDERS["xmpp"] = lambda x: mock_provider
+
+        rv = self.client.get("/v1/register/xmpp/new_other@example.com/new_other@example.com")
+        expect(rv.status_code).to.equal(200)
+        data = json.loads(rv.data)
+        expect(data["status"]).to.equal("pending")
+        expect(data["xmpp"]).to.equal("message is out")
+        key = data["hash"]
+
+        db_entry = self.database[key]
+        expect(db_entry["provider_id"]).to.equal("new_other@example.com")
+        expect(db_entry["provider"]).to.equal("xmpp")
+        expect(db_entry["target"]).to.equal("new_other@example.com")
 
         mock_provider.register.assert_called_once_with(self.database[key])
 

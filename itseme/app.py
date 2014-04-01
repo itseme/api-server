@@ -2,6 +2,7 @@
 from flask import Flask, jsonify, g, request, abort, make_response
 from celery import Celery
 
+
 import couchdb
 import hashlib
 
@@ -132,6 +133,6 @@ def setup_app():
 
 
 if __name__ == '__main__':
-    app.config.from_object("config.DebugConfig")
+    app.config.from_object("itseme.config.DebugConfig")
     setup_app()
     app.run(debug=config.DEBUG)
