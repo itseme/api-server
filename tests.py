@@ -32,12 +32,48 @@ class TestV1Api(unittest.TestCase):
         rv = self.client.get("/v1/confirm/hashc6id89ad98ad/jid@FAULTY.com")
         expect(json.loads(rv.data)["confirmed"]).to.be(False)
 
-    def test_register(self):
-        raise NotImplementedError
+    def test_confirm_list_empty(self):
+        request_data = {
+            "hashes": [],
+            "target": "jid@example.com"}
+        rv = self.client.get("/v1/confirm/", query_string=request_data)
+        expect(json.loads(rv.data)["confirmed"]).to.be(False)
 
-    def test_approve(self):
-        raise NotImplementedError
+    def test_confirm_all_found(self):
+        request_data = {
+            "hashes": ["hashc6id89ad98ad", "hashc6id89ad99ad", "hashc6id89ad238ad"],
+            "target": "jid@example.com"}
+        rv = self.client.get("/v1/confirm/", query_string=request_data)
+        expect(json.loads(rv.data)["confirmed"]).to.be(True)
 
-    def test_request(self):
-        raise NotImplementedError
+    def test_confirm_all_found_one_pending(self):
+        request_data = {
+            "hashes": ["hashc6id89ad98ad", "hashc6id8PENDING", "hashc6id89ad99ad", "hashc6id89ad238ad"],
+            "target": "jid@example.com"}
+        rv = self.client.get("/v1/confirm/", query_string=request_data)
+        expect(json.loads(rv.data)["confirmed"]).to.be(False)
+
+    def test_confirm_all_found_one_not_found(self):
+        request_data = {
+            "hashes": ["hashc6id89ad98ad", "NOTFOUND", "hashc6id89ad99ad", "hashc6id89ad238ad"],
+            "target": "jid@example.com"}
+        rv = self.client.get("/v1/confirm/", query_string=request_data)
+        expect(json.loads(rv.data)["confirmed"]).to.be(False)
+
+    def test_confirm_all_found_one_wrong(self):
+        request_data = {
+            "hashes": ["hashc6id89ad98ad", "hashc6id89ad98a3", "hashc6id89ad99ad", "hashc6id89ad238ad"],
+            "target": "jid@example.com"}
+        rv = self.client.get("/v1/confirm/", query_string=request_data)
+        expect(json.loads(rv.data)["confirmed"]).to.be(False)
+
+
+    # def test_register(self):
+    #     raise NotImplementedError
+
+    # def test_approve(self):
+    #     raise NotImplementedError
+
+    # def test_request(self):
+    #     raise NotImplementedError
 

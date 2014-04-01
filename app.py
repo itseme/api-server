@@ -1,5 +1,5 @@
 
-from flask import Flask, jsonify, g
+from flask import Flask, jsonify, g, request
 from celery import Celery
 
 import config
@@ -41,8 +41,25 @@ def confirm_one(hashkey, target):
 
 
 @app.route("/v1/confirm")
+@app.route("/v1/confirm/")
 def confirm_many():
-    return jsonify({})
+    target = request.args.get("target", "").strip()
+    to_confirm = request.args.getlist("hashes")
+    if not to_confirm or not target:
+        return jsonify({"confirmed": False})
+
+    for hashkey in to_confirm:
+        try:
+            doc = g.couch[hashkey]
+            if doc["status"] != "confirmed" or doc["target"] != target:
+                break
+        except KeyError:
+            break
+    else:
+        # We could run through without a break, means we are good
+        return jsonify({"confirmed": True})
+
+    return jsonify({"confirmed": False})
 
 
 @app.route('/')
