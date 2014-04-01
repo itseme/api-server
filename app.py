@@ -1,5 +1,5 @@
 # -*- encoding: utf-8 -*-
-from flask import Flask, jsonify, g, request,  make_response
+from flask import Flask, jsonify, g, request, abort, make_response
 from celery import Celery
 
 import config
@@ -66,10 +66,19 @@ def approve_key(hashkey):
 
 @app.route("/v1/register/<string:provider>/<string:provider_id>/<string:endpoint>")
 def register(provider, provider_id, endpoint):
+    endpoint = endpoint.strip()
+    if provider != "xmpp" or provider_id != endpoint:
+        # let's prove the user is allowed to connect
+        try:
+            if g.couch[_make_key("xmpp", endpoint)]["status"] != "confirmed":
+                abort(401)
+        except KeyError:
+            abort(401)
+
     key = _make_key(provider, provider_id)
     doc = {"_id": key, "provider": provider,
            "provider_id": provider_id, "status": "pending",
-           "target": endpoint.strip()}
+           "target": endpoint}
     resp = {"status": "pending", "hash": key}
     resp.update(PROVIDERS[provider](app).register(doc))
     g.couch[key] = doc
@@ -93,6 +102,9 @@ def confirm_many():
     to_confirm = request.args.getlist("hashes")
     if not to_confirm or not target:
         return jsonify({"confirmed": False})
+
+    if len(to_confirm) > 100:
+        abort(400)
 
     for hashkey in to_confirm:
         try:

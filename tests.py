@@ -49,6 +49,13 @@ class TestV1Api(unittest.TestCase):
         rv = self.client.get("/v1/confirm/", query_string=request_data)
         expect(json.loads(rv.data)["confirmed"]).to.be(True)
 
+    def test_confirm_too_many(self):
+        request_data = {
+            "hashes": [str(x) for x in xrange(101)],
+            "target": "jid@example.com"}
+        rv = self.client.get("/v1/confirm/", query_string=request_data)
+        expect(rv.status_code).to.equal(400)
+
     def test_confirm_all_found_one_pending(self):
         request_data = {
             "hashes": ["hashc6id89ad98ad", "hashc6id8PENDING", "hashc6id89ad99ad", "hashc6id89ad238ad"],
@@ -112,12 +119,20 @@ class TestV1Api(unittest.TestCase):
     def test_approve_complaining_provider(self):
 
         mock_provider = MagicMock(spec=Provider)
-        mock_provider.approve.side_effect = lambda x: abort(401)
+        mock_provider.approve.side_effect = lambda x: abort(409)
         app.PROVIDERS["provider_two"] = lambda x: mock_provider
 
         rv = self.client.get("/v1/approve/hashc6id8PENDING")
+        expect(rv.status_code).to.equal(409)
+
+
+    def test_register_unknown_target(self):
+        rv = self.client.get("/v1/register/coolio_service/master_keen/unknown@example.com")
         expect(rv.status_code).to.equal(401)
 
+    def test_register_unconfirmed(self):
+        rv = self.client.get("/v1/register/coolio_service/master_keen/unconfirmed@example.com")
+        expect(rv.status_code).to.equal(401)
 
     def test_register_new(self):
 
@@ -135,7 +150,6 @@ class TestV1Api(unittest.TestCase):
         expect(db_entry["provider"]).to.equal("coolio_service")
 
         mock_provider.register.assert_called_once_with(self.database[key])
-
 
     def test_register_new_extended_provider(self):
 
