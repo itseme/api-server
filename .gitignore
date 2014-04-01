@@ -19,6 +19,7 @@ parts/
 sdist/
 include/
 var/
+man/
 *.egg-info/
 .installed.cfg
 *.egg
