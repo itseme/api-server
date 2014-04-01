@@ -2,12 +2,14 @@
 from itseme.providers import OAuthProvider, OAuthRemoteApp
 from itseme.app import app
 
-from mock import MagicMock
+from mock import MagicMock, patch
 from flask import session, redirect
 
 from sure import expect
 from _base import BaseTestMixin
 import unittest
+import json
+
 
 class SubProv(OAuthProvider):
     name = "sub_prov"
@@ -47,4 +49,74 @@ class TestOAuthProvider(BaseTestMixin, unittest.TestCase):
         expect(doc[self.provider.key]).to.equal(["a", "b"])
         self.remote.authorize.assert_called_once()
         expect(self.remote.authorize.call_args[0]).to.contain("next=whatever.com")
+
+    def test_approve_with_code_environ(self):
+        self.remote.handle_oauth2_response.return_value = {"a": "b"}
+        doc = {"provider_id": "test_id", "_id": "HASHIKU"}
+
+        with patch.object(self.provider, "confirm") as confirm:
+            confirm.return_value = True
+            with app.test_request_context('/?code=Peter'):
+                resp = self.provider.approve(doc)
+
+            confirm.assert_called_once_with(doc, {"a": "b"})
+            expect(resp).to.be(None)
+            expect(doc["status"]).to.equal("confirmed")
+            self.remote.handle_oauth2_response.assert_called_once_with()
+
+    def test_approve_with_code_confirm_declines_environ(self):
+        self.remote.handle_oauth2_response.return_value = {"a": "b"}
+        doc = {"provider_id": "test_id", "_id": "HASHIKU"}
+
+        with patch.object(self.provider, "confirm") as confirm:
+            confirm.return_value = False
+            with app.test_request_context('/?code=Peter'):
+                resp = self.provider.approve(doc)
+
+            confirm.assert_called_once_with(doc, {"a": "b"})
+            expect(resp.status_code).to.equal(400)
+            data = json.loads(resp.data)
+            expect(data["error"]["code"]).to.equal("wrong_user")
+            self.remote.handle_oauth2_response.assert_called_once_with()
+
+    def test_approve_with_oauth_verify_environ(self):
+        self.remote.handle_oauth1_response.return_value = "YES, MAM!"
+        doc = {"provider_id": "test_id", "_id": "HASHIKU"}
+
+        with patch.object(self.provider, "confirm") as confirm:
+            confirm.return_value = True
+            with app.test_request_context('/?oauth_verifier=Peter'):
+                resp = self.provider.approve(doc)
+
+            confirm.assert_called_once_with(doc, "YES, MAM!")
+            expect(resp).to.be(None)
+            expect(doc["status"]).to.equal("confirmed")
+            self.remote.handle_oauth1_response.assert_called_once_with()
+
+    def test_approve_with_oauth_verify_confirm_declines_environ(self):
+        self.remote.handle_oauth1_response.return_value = "YES, MAM!"
+        doc = {"provider_id": "test_id", "_id": "HASHIKU"}
+
+        with patch.object(self.provider, "confirm") as confirm:
+            confirm.return_value = False
+            with app.test_request_context('/?oauth_verifier=Peter'):
+                resp = self.provider.approve(doc)
+
+            confirm.assert_called_once_with(doc, "YES, MAM!")
+            expect(resp.status_code).to.equal(400)
+            data = json.loads(resp.data)
+            expect(data["error"]["code"]).to.equal("wrong_user")
+            self.remote.handle_oauth1_response.assert_called_once_with()
+
+
+    def test_approve_without_codes_environ(self):
+        doc = {"provider_id": "test_id", "_id": "HASHIKU"}
+
+        with app.test_request_context('/'):
+            resp = self.provider.approve(doc)
+
+        expect(resp.status_code).to.equal(400)
+        data = json.loads(resp.data)
+        expect(data["error"]["code"]).to.equal("missing_code")
+
 

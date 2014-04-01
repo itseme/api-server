@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 from mock import MagicMock
 from sure import expect
-from flask import abort
+from flask import abort, make_response
 
 from itseme.providers import Provider
 from itseme import app
@@ -125,6 +125,15 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         rv = self.client.get("/v1/approve/hashc6id8PENDING")
         expect(rv.status_code).to.equal(409)
 
+    def test_approve_returning_provider(self):
+
+        mock_provider = MagicMock(spec=Provider)
+        mock_provider.approve.side_effect = lambda x: make_response(("Test", 303, {}))
+        app.PROVIDERS["provider_two"] = lambda x: mock_provider
+
+        rv = self.client.get("/v1/approve/hashc6id8PENDING")
+        expect(rv.status_code).to.equal(303)
+
 
     def test_register_unknown_target(self):
         rv = self.client.get("/v1/register/coolio_service/master_keen/unknown@example.com")
@@ -133,6 +142,25 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
     def test_register_unconfirmed(self):
         rv = self.client.get("/v1/register/coolio_service/master_keen/unconfirmed@example.com")
         expect(rv.status_code).to.equal(401)
+
+
+    def test_register_complaining_provider(self):
+
+        mock_provider = MagicMock(spec=Provider)
+        mock_provider.register.side_effect = lambda x: abort(409)
+        app.PROVIDERS["coolio_service"] = lambda x: mock_provider
+
+        rv = self.client.get("/v1/register/coolio_service/master_keen/my_jabber@example.com")
+        expect(rv.status_code).to.equal(409)
+
+    def test_register_returning_provider(self):
+
+        mock_provider = MagicMock(spec=Provider)
+        mock_provider.register.side_effect = lambda x: make_response(("Test", 303, {}))
+        app.PROVIDERS["coolio_service"] = lambda x: mock_provider
+
+        rv = self.client.get("/v1/register/coolio_service/master_keen/my_jabber@example.com")
+        expect(rv.status_code).to.equal(303)
 
     def test_register_new(self):
 
