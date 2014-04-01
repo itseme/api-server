@@ -23,5 +23,10 @@ class DebugConfig(Config):
 
 class TestConfig(Config):
     SECRET_KEY = "TESTING"
+    BROKER_BACKEND = 'memory'
+    CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
+    CELERY_ALWAYS_EAGER = True
     DEBUG = True
     TESTING = True
+
+    MAIL_DEFAULT_SENDER  = "mickey@example.com"

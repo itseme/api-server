@@ -3,13 +3,64 @@ from flask import session, url_for, request
 
 from util import json_exception, json_error
 
+from itseme import tasks
+import random
+
 
 class Provider(object):
+
+    def __init__(self, app):
+        self.app = app
+
     def register(self, doc):
         pass
 
     def approve(self, doc):
         pass
+
+
+class EmailProvider(Provider):
+
+    def register(self, doc):
+        target_id = doc["provider_id"]
+        code = "{0:.6}".format(random.random())[2:]
+        doc["email_code"] = code
+        url = url_for('approve', hashkey=doc["_id"], code=code)
+        tasks.send_confirm_email.delay(target_id, code, url)
+
+    def approve(self, doc):
+        code = request.args.get("code", None)
+        if not code:
+            return json_error(400, "missing_code", "You need to provide the code parameter")
+
+        if code == doc["email_code"]:
+            doc["status"] = "confirmed"
+            doc.pop("email_code")
+            return
+
+        return json_error(400, "faulty_code", "Sorry, code doesn't match.")
+
+
+class XmppProvider(Provider):
+
+    def register(self, doc):
+        target_id = doc["provider_id"]
+        code = "{0:.4}".format(random.random())[2:]
+        doc["xmpp_code"] = code
+        message = "Verification Code: {0}".format(code)
+        tasks.send_xmpp_message.delay(target_id, message)
+
+    def approve(self, doc):
+        code = request.args.get("code", None)
+        if not code:
+            return json_error(400, "missing_code", "You need to provide the code parameter")
+
+        if code == doc["xmpp_code"]:
+            doc["status"] = "confirmed"
+            doc.pop("xmpp_code")
+            return
+
+        return json_error(400, "faulty_code", "Sorry, code doesn't match.")
 
 
 class OAuthProvider(Provider):
@@ -20,7 +71,6 @@ class OAuthProvider(Provider):
     def __init__(self, app):
         self.app = app
         self.remote = OAuthRemoteApp(self, self.name, **self.config)
-        self.remote.tokengetter(self._tokengetter)
         self.key = '%s_oauthtok' % self.name
 
     def register(self, doc):
@@ -64,10 +114,6 @@ class OAuthProvider(Provider):
     def confirm(self, doc, data):
         raise NotImplementedError()
 
-    def _tokengetter(self):
-        return (self.doc["oauth_token"], self.doc["oauth_secret"])
-
-
 class Facebook(OAuthProvider):
     name = "facebook"
     config = dict(base_url='https://graph.facebook.com/',
@@ -110,7 +156,9 @@ class Github(OAuthProvider):
 
 
 PROVIDERS = {
-    "facebook": lambda app: Facebook(app),
-    "twitter": lambda app: Twitter(app),
-    "github": lambda app: Github(app),
+    "facebook": Facebook,
+    "twitter": Twitter,
+    "github": Github,
+    "email": EmailProvider,
+    "xmpp": XmppProvider,
 }

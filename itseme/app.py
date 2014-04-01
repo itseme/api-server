@@ -1,12 +1,11 @@
 # -*- encoding: utf-8 -*-
 from flask import Flask, jsonify, g, Response, request, abort, make_response
-from celery import Celery
-
 
 import couchdb
 import hashlib
 
 from itseme.providers import PROVIDERS
+from itseme.tasks import celery, mail
 
 app = Flask(__name__)
 
@@ -142,13 +141,8 @@ def hello_world():
     return 'Hello World!'
 
 
-
-def setup_app():
-    app.celery = Celery('tasks')
-    app.celery.config.update(app.config)
-
-
 if __name__ == '__main__':
     app.config.from_object("itseme.config.DebugConfig")
-    setup_app()
-    app.run(debug=config.DEBUG)
+    celery.config.update(app.config)
+    mail.init_app(app)
+    app.run()
