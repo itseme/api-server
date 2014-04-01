@@ -1,5 +1,5 @@
-from flask_oauthlib.client import OAuthRemoteApp
-from flask import session, url_for, request
+from flask_oauthlib.client import OAuth
+from flask import session, url_for
 
 
 class Provider(object):
@@ -17,13 +17,13 @@ class OAuthProvider(Provider):
     def __init__(self, app):
         self.app = app
         self.remote = OAuthRemoteApp(self, self.name, **self.config)
-        self.remote.tokengetter(self._tokengetter)
+        self.remote.tokengetter(self.tokengetter)
         self.key = '%s_oauthtok' % self.name
 
     def register(self, doc):
-        resp = self.remote.authorize(callback=url_for('approve',
-                                                      hashkey=doc["_id"],
-                                                      next=request.args.get('next') or None))
+        resp = self.remote.authorize(callback=url_for('oauth_authorized',
+                                     hashkey=doc["_id"],
+                                     next=request.args.get('next') or None))
 
         if self.key in session:
             doc[self.key] = session.pop(self.key)
@@ -38,12 +38,12 @@ class OAuthProvider(Provider):
             try:
                 data = self.remote.handle_oauth1_response()
             except OAuthException as e:
-                raise json_exception(e)
+                data = e
         elif 'code' in request.args:
             try:
                 data = self.remote.handle_oauth2_response()
             except OAuthException as e:
-                raise json_exception(e)
+                data = e
         else:
             data
 
@@ -51,7 +51,7 @@ class OAuthProvider(Provider):
         return (self.doc["oauth_token"], self.doc["oauth_secret"])
 
 
-class FacebookProvider(OAuthProvider):
+class Facebook(OAuthProvider):
     name = "facebook"
     config = dict(base_url='https://graph.facebook.com/',
                   request_token_url=None,
@@ -61,7 +61,7 @@ class FacebookProvider(OAuthProvider):
                   request_token_params={'scope': 'email'})
 
 
-class TwitterProvider(OAuthProvider):
+class Twitter(OAuthProvider):
     name = "twitter"
     config = dict(base_url='https://api.twitter.com/1/',
                   request_token_url='https://api.twitter.com/oauth/request_token',
@@ -70,6 +70,6 @@ class TwitterProvider(OAuthProvider):
                   app_key='TWITTER')
 
 PROVIDERS = {
-    "facebook": lambda app: FacebookProvider(app),
-    "twitter": lambda app: TwitterProvider(app),
+    "facebook": lambda app: Facebook(app),
+    "twitter": lambda app: Twitter(app),
 }

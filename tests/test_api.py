@@ -9,13 +9,13 @@ from itseme import app
 import unittest
 import json
 
-import yaml
+from _base import load_db
 
 
 class TestV1Api(unittest.TestCase):
 
     def setUp(self):
-        self.database = yaml.load(open("tests/test_data.yml"))
+        self.database = load_db()
         app.app.config.from_object("itseme.config.TestConfig")
         app._get_db = lambda: self.database
 
@@ -115,6 +115,7 @@ class TestV1Api(unittest.TestCase):
         expect(json.loads(rv.data)["confirmed"]).to.be(True)
         expect(json.loads(rv.data)["we want"]).to.equal("candy")
         expect(self.database["hashc6id8PENDING"]["confirmed"]).to.be(True)
+        expect(self.database["hashc6id8PENDING"].has_key("provider")).to.be(False)
         mock_provider.approve.assert_called_once_with(self.database["hashc6id8PENDING"])
 
 

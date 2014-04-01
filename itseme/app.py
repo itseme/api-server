@@ -34,7 +34,7 @@ def connect_db():
 
 
 @app.route("/v1/approve/<string:hashkey>")
-def approve_key(hashkey):
+def approve(hashkey):
     try:
         doc = g.couch[hashkey]
         if doc["status"] != "pending":

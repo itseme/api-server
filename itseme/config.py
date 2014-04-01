@@ -1,6 +1,6 @@
 
 class Config(object):
-    DEBUG = True
+    DEBUG = False
 
     COUCHDB_SERVER = ""
     COUCHDB_DATABASE = ""
@@ -17,8 +17,11 @@ class Config(object):
 
 
 class DebugConfig(Config):
-    pass
+    SECRET_KEY = "DEBUG"
+    DEBUG = True
 
 
 class TestConfig(Config):
+    SECRET_KEY = "TESTING"
+    DEBUG = True
     TESTING = True
