@@ -9,16 +9,13 @@ from itseme import app
 import unittest
 import json
 
-from _base import load_db
+from _base import BaseTestMixin
 
 
-class TestV1Api(unittest.TestCase):
+class TestV1Api(BaseTestMixin, unittest.TestCase):
 
     def setUp(self):
-        self.database = load_db()
-        app.app.config.from_object("itseme.config.TestConfig")
-        app._get_db = lambda: self.database
-
+        super(TestV1Api, self).setUp()
         self.client = app.app.test_client()
 
     def test_confirm_one(self):

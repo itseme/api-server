@@ -1,11 +1,14 @@
 from flask_oauthlib.client import OAuthRemoteApp
 from flask import session, url_for, request
 
+from util import json_exception, json_error
+
 
 class Provider(object):
-    def register(self, doc, id, endpoint):
+    def register(self, doc):
         pass
-    def approve(self, doc, hash, confirmcode):
+
+    def approve(self, doc):
         pass
 
 
@@ -21,9 +24,12 @@ class OAuthProvider(Provider):
         self.key = '%s_oauthtok' % self.name
 
     def register(self, doc):
-        resp = self.remote.authorize(callback=url_for('approve',
-                                                      hashkey=doc["_id"],
-                                                      next=request.args.get('next') or None))
+        callback = None
+        if request.args.get('next'):
+          callback = url_for('approve', hashkey=doc["_id"],
+                             next=request.args.get('next'))
+
+        resp = self.remote.authorize(callback=callback)
 
         if self.key in session:
             doc[self.key] = session.pop(self.key)
@@ -38,14 +44,15 @@ class OAuthProvider(Provider):
             try:
                 data = self.remote.handle_oauth1_response()
             except OAuthException as e:
-                raise json_exception(e)
+                return json_exception(e)
         elif 'code' in request.args:
             try:
                 data = self.remote.handle_oauth2_response()
             except OAuthException as e:
-                raise json_exception(e)
+                return json_exception(e)
         else:
-            data
+          return json_error()
+        self.confirm
 
     def _tokengetter(self):
         return (self.doc["oauth_token"], self.doc["oauth_secret"])
