@@ -1,5 +1,5 @@
 # -*- encoding: utf-8 -*-
-from flask import Flask, jsonify, g, request, abort, make_response
+from flask import Flask, jsonify, g, Response, request, abort, make_response
 from celery import Celery
 
 
@@ -52,11 +52,20 @@ def approve(hashkey):
 
     resp = {"confirmed": True}
 
-    more = PROVIDERS[doc["provider"]](app).approve(doc)
-    if more:
-        resp.update(more)
+    provider_return = PROVIDERS[doc["provider"]](app).approve(doc)
+    if provider_return:
+        if isinstance(provider_return, Response):
+            return provider_return
+        resp.update(provider_return)
 
     doc["confirmed"] = True
+
+    for x in ("provider", "provider_id"):
+        # we do not want those in here
+        try:
+            del doc[x]
+        except KeyError:
+            pass
 
     # explicitly write it again
     g.couch[hashkey] = doc
@@ -79,8 +88,15 @@ def register(provider, provider_id, endpoint):
     doc = {"_id": key, "provider": provider,
            "provider_id": provider_id, "status": "pending",
            "target": endpoint}
+
     resp = {"status": "pending", "hash": key}
-    resp.update(PROVIDERS[provider](app).register(doc))
+
+    provider_return = PROVIDERS[provider](app).register(doc)
+    if provider_return:
+        if isinstance(provider_return, Response):
+            return provider_return
+        resp.update(provider_return)
+
     g.couch[key] = doc
     return jsonify(resp)
 
