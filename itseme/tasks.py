@@ -1,11 +1,13 @@
 from celery import Celery
 from flask import json
+
+from xmpp_client import SendMsgBot
 from flask_mail import Mail, Message
+from twilio.rest import TwilioRestClient
 
 celery = Celery()
 mail = Mail()
 
-from xmpp_client import SendMsgBot
 
 
 @celery.task()
@@ -78,3 +80,14 @@ def send_xmpp_message(to, message):
                         to, message)
     if client.connect():
         client.process(block=True)
+
+
+@celery.task()
+def send_sms_message(to, message):
+    client = TwilioRestClient(celery.conf.get("TWILIO_SID"),
+                              celery.conf.get("TWILIO_TOKEN"))
+    kwargs = dict(to=to, body=message)
+    from_ = celery.conf.get("TWILIO_FROM")
+    if from_:
+        kwargs["from_"] = from_
+    client.messages.create(**kwargs)

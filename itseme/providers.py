@@ -17,51 +17,63 @@ class Provider(object):
     def verify(self, doc):
         pass
 
+class SimpleVerifyMixin(object):
 
-class EmailProvider(Provider):
+    MY_KEY = "SP_CODE"
+    GEN_LENGTH = 4
 
     def register(self, doc):
-        target_id = doc["provider_id"]
-        code = _generate_code(6)
-        doc["email_code"] = code
+        code = _generate_code(self.GEN_LENGTH)
+        doc[self.CODE_KEY] = code
+        return self._register(doc["provider_id"], doc, code)
+
+    def verify(self, doc):
+        code = request.args.get("code", None)
+        if not code:
+            return json_error(400, "missing_code",
+                              "You need to provide the code parameter")
+
+        if code == doc[self.CODE_KEY]:
+            doc["status"] = "confirmed"
+            doc.pop(self.CODE_KEY)
+            return
+
+        return json_error(400, "faulty_code",
+                          "Sorry, code doesn't match.")
+
+
+class EmailProvider(SimpleVerifyMixin, Provider):
+
+    CODE_KEY = "email_code"
+    GEN_LENGTH = 6
+
+    def _register(self, confirm_id, doc, code):
         url = url_for('verify', hashkey=doc["_id"], code=code)
-        tasks.send_confirm_email.delay(target_id, code, url)
-
-    def verify(self, doc):
-        code = request.args.get("code", None)
-        if not code:
-            return json_error(400, "missing_code", "You need to provide the code parameter")
-
-        if code == doc["email_code"]:
-            doc["status"] = "confirmed"
-            doc.pop("email_code")
-            return
-
-        return json_error(400, "faulty_code", "Sorry, code doesn't match.")
+        tasks.send_confirm_email.delay(confirm_id, code, url)
 
 
-class XmppProvider(Provider):
+class XmppProvider(SimpleVerifyMixin, Provider):
 
-    def register(self, doc):
-        target_id = doc["provider_id"]
-        code = _generate_code()
-        doc["xmpp_code"] = code
+    CODE_KEY = "xmpp_code"
+    GEN_LENGTH = 4
+
+    def _register(self, confirm_id, doc, code):
         message = {"text": "Verification Code: {0}".format(code),
-                   "verify": { "code": code, "hash": doc["_id"]}}
+                   "verify": {"code": code, "hash": doc["_id"]}}
 
-        tasks.send_xmpp_message.delay(target_id, message)
+        tasks.send_xmpp_message.delay(confirm_id, message)
 
-    def verify(self, doc):
-        code = request.args.get("code", None)
-        if not code:
-            return json_error(400, "missing_code", "You need to provide the code parameter")
 
-        if code == doc["xmpp_code"]:
-            doc["status"] = "confirmed"
-            doc.pop("xmpp_code")
-            return
+class SmsProvider(SimpleVerifyMixin, Provider):
 
-        return json_error(400, "faulty_code", "Sorry, code doesn't match.")
+    CODE_KEY = "phone_code"
+    GEN_LENGTH = 4
+
+    def _register(self, confirm_id, doc, code):
+        message = "It-se, you {0}? Verify with: {1}".format(
+                    doc["target"], code)
+
+        tasks.send_sms_message.delay(confirm_id, message)
 
 
 class OAuthProvider(Provider):
@@ -102,11 +114,13 @@ class OAuthProvider(Provider):
             except OAuthException as e:
                 return json_exception(e)
         else:
-            return json_error(400, "missing_code", "You need to provide either oauth_verifier or code")
+            return json_error(400, "missing_code",
+                    "You need to provide either oauth_verifier or code")
 
         try:
             if not self.confirm(doc, data):
-                return json_error(400, "wrong_user", "The user doesn't match. Sorry")
+                return json_error(400, "wrong_user",
+                        "The user doesn't match. Sorry")
         except Exception, e:
             return json_exception(500, e)
 
@@ -114,6 +128,7 @@ class OAuthProvider(Provider):
 
     def confirm(self, doc, data):
         raise NotImplementedError()
+
 
 class Facebook(OAuthProvider):
     name = "facebook"
@@ -127,6 +142,7 @@ class Facebook(OAuthProvider):
     def confirm(self, doc, data):
         user_data = self.remote.get("me?fields=username")
         return user_data["username"] == doc["provider_id"]
+
 
 class Twitter(OAuthProvider):
     name = "twitter"
@@ -162,4 +178,5 @@ PROVIDERS = {
     "github": Github,
     "email": EmailProvider,
     "xmpp": XmppProvider,
+    "phone": SmsProvider
 }
