@@ -15,22 +15,23 @@ class Config(object):
     CELERY_RESULT_SERIALIZER = 'json'
     CELERY_ACCEPT_CONTENT = ['json']
     CELERY_TIMEZONE = 'Europe/Berlin'
+    CELERY_RESULT_SERIALIZER = 'json'
     CELERY_ENABLE_UTC = True
 
 
 class ProductionConfig(Config):
     BROKER_URL = "redis://{0}:{1}/0".format(
-                environ["REDIS_PORT_6379_TCP_ADDR"],
-                environ["REDIS_PORT_6379_TCP_PORT"]
+                environ.get("REDIS_PORT_6379_TCP_ADDR", ""),
+                environ.get("REDIS_PORT_6379_TCP_PORT", "")
                 )
     CELERY_RESULT_BACKEND = "redis://{0}:{1}/1".format(
-                environ["REDIS_PORT_6379_TCP_ADDR"],
-                environ["REDIS_PORT_6379_TCP_PORT"]
+                environ.get("REDIS_PORT_6379_TCP_ADDR", ""),
+                environ.get("REDIS_PORT_6379_TCP_PORT", "")
                 )
 
     COUCHDB_SERVER = "http://{0}:{1}/".format(
-                environ["COUCH_PORT_5984_TCP_ADDR"],
-                environ["COUCH_PORT_5984_TCP_PORT"],
+                environ.get("COUCH_PORT_5984_TCP_ADDR", ""),
+                environ.get("COUCH_PORT_5984_TCP_PORT", "")
                 )
     COUCHDB_DATABASE = "itseme"
 
