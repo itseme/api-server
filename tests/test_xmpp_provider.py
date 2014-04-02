@@ -24,7 +24,7 @@ class TestXmppProvider(BaseTestMixin, unittest.TestCase):
         with app.test_request_context('/?code=4758'):
             resp = self.provider.verify(doc)
 
-        expect(resp).to.be(None)
+        expect(resp).to.be.none
         expect(doc["status"]).to.equal("confirmed")
 
     def test_verify_no_code(self):
@@ -52,11 +52,11 @@ class TestXmppProvider(BaseTestMixin, unittest.TestCase):
         send_mock.connect.return_value = True
         self.provider.register(doc)
 
-        expect(len(doc["xmpp_code"])).to.equal(4)
+        expect(doc["xmpp_code"]).should.have.length_of(4)
 
         message = send_mock.call_args[0][3]
-        expect(type(message)).to.be(dict)
-        expect(isinstance(message["verify"]["code"], basestring)).to.be(True)
+        expect(message).should.be.a(dict)
+        expect(message["verify"]["code"]).should.be.a(basestring)
         code = message["verify"]["code"]
         expect(code).to.equal(doc["xmpp_code"])
         expect(message["text"]).to.contain(code)

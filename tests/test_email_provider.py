@@ -24,7 +24,7 @@ class TestEmailProvider(BaseTestMixin, unittest.TestCase):
         with app.test_request_context('/?code=189839'):
             resp = self.provider.verify(doc)
 
-        expect(resp).to.be(None)
+        expect(resp).should.be.none
         expect(doc["status"]).to.equal("confirmed")
 
     def test_verify_no_code(self):
@@ -55,8 +55,8 @@ class TestEmailProvider(BaseTestMixin, unittest.TestCase):
             with app.test_request_context('/'):
                 self.provider.register(doc)
 
-            expect(len(doc["email_code"])).to.equal(6)
-            expect(len(outbox)).to.equal(1)
+            expect(doc["email_code"]).should.have.length_of(6)
+            expect(outbox).should.have.length_of(1)
             message = outbox[0]
             code = doc["email_code"]
             expect(message.subject).to.contain(code)

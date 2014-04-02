@@ -60,7 +60,7 @@ class TestOAuthProvider(BaseTestMixin, unittest.TestCase):
                 resp = self.provider.verify(doc)
 
             confirm.assert_called_once_with(doc, {"a": "b"})
-            expect(resp).to.be(None)
+            expect(resp).to.be.none
             expect(doc["status"]).to.equal("confirmed")
             self.remote.handle_oauth2_response.assert_called_once_with()
 
@@ -89,7 +89,7 @@ class TestOAuthProvider(BaseTestMixin, unittest.TestCase):
                 resp = self.provider.verify(doc)
 
             confirm.assert_called_once_with(doc, "YES, MAM!")
-            expect(resp).to.be(None)
+            expect(resp).to.be.none
             expect(doc["status"]).to.equal("confirmed")
             self.remote.handle_oauth1_response.assert_called_once_with()
 

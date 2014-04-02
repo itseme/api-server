@@ -401,7 +401,7 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         with patch.object(tasks.contact_request, "delay") as mocked_task:
             rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
             # though it hasn't been called!
-            expect(len(mocked_task.call_list)).to.equal(0)
+            expect(mocked_task.call_list).should.have.length_of(0)
 
         expect(rv.status_code).to.equal(200)
         data = json.loads(rv.data)
@@ -452,8 +452,8 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         message = send_mock.call_args[0][3]
 
         expect(type(message)).to.be(dict)
-        expect(isinstance(message["contact"]["jid"], basestring)).to.be(True)
-        expect(isinstance(message["contact"]["info"], basestring)).to.be(True)
+        expect(message["contact"]["jid"]).should.be.a(basestring)
+        expect(message["contact"]["info"]).should.be.a(basestring)
         info = json.loads(message["contact"]["info"])
         expect(info).to.equal([
                 {'confirmed': True, "protocol": "phone", "id": "+00112345678"},
