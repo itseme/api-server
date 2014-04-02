@@ -5,4 +5,4 @@ if __name__ == '__main__':
     app.config.from_object("itseme.config.ProductionConfig")
     celery.conf.update(app.config)
     mail.init_app(app)
-    app.run()
+    app.run(host='0.0.0.0')
