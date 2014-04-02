@@ -1,3 +1,5 @@
+from os import environ
+
 
 class Config(object):
     DEBUG = False
@@ -6,14 +8,31 @@ class Config(object):
     COUCHDB_DATABASE = ""
 
     ## CELERY CONFIG
-    BROKER_URL = 'amqp://'
-    CELERY_RESULT_BACKEND = 'amqp://'
+    BROKER_URL = ''
+    CELERY_RESULT_BACKEND = ''
 
     CELERY_TASK_SERIALIZER = 'json'
     CELERY_RESULT_SERIALIZER = 'json'
     CELERY_ACCEPT_CONTENT = ['json']
     CELERY_TIMEZONE = 'Europe/Berlin'
     CELERY_ENABLE_UTC = True
+
+
+class ProductionConfig(Config):
+    BROKER_URL = "redis://{0}:{1}/0".format(
+                environ["REDIS_PORT_6379_TCP_ADDR"],
+                environ["REDIS_PORT_6379_TCP_PORT"]
+                )
+    CELERY_RESULT_BACKEND = "redis://{0}:{1}/1".format(
+                environ["REDIS_PORT_6379_TCP_ADDR"],
+                environ["REDIS_PORT_6379_TCP_PORT"]
+                )
+
+    COUCHDB_SERVER = "http://{0}:{1}/".format(
+                environ["COUCH_PORT_5984_TCP_ADDR"],
+                environ["COUCH_PORT_5984_TCP_PORT"],
+                )
+    COUCHDB_DATABASE = "itseme"
 
 
 class DebugConfig(Config):
