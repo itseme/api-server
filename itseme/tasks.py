@@ -1,4 +1,5 @@
 from celery import Celery
+from flask import json
 from flask_mail import Mail, Message
 
 celery = Celery()
@@ -49,8 +50,24 @@ this message and accept our apology for the bother.
 
 
 @celery.task()
-def contact_request(to, source):
-    pass
+def contact_request(to, jid, info):
+    info_block = [":".join([x["protocol"], x["id"]]) for x in info]
+    text = """Hey there,
+{0} asked whether they are allowed to get in contact with you.
+They provided the following contact details for you to confirm
+their identity:
+
+   * {1}
+    """.format(jid, "\n   * ".join(info_block))
+    message = {
+        "text": text,
+        "contact": {"jid": jid, "info": json.dumps(info)}
+    }
+    client = SendMsgBot(celery.conf.get("JID", ""),
+                        celery.conf.get("JID_PASSWORD", ""),
+                        to, message)
+    if client.connect():
+        client.process(block=True)
 
 
 @celery.task()

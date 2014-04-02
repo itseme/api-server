@@ -267,6 +267,7 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
         expect(rv.status_code).to.equal(400)
         data = json.loads(rv.data)
+        print data["error"]["message"]
         expect(data["error"]["code"]).to.equal("target_unconfirmed")
 
         # not yet confirmed
@@ -382,7 +383,6 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
                 {"protocol": "phone", "id": "+00112345678"},
                 {"protocol": "email", "id": "hunter@jobs.com"},
                 {"protocol": "phone", "id": "+4912345"},
-                # none can be confirmed unfortunately
                 {}, # this one is broken
                 None # and so is this.
                 ],
@@ -397,3 +397,63 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         expect(rv.status_code).to.equal(200)
         data = json.loads(rv.data)
         expect(data["status"]).to.equal("requests_send")
+
+
+    @patch("itseme.tasks.SendMsgBot", spec=tasks.SendMsgBot)
+    def test_register(self, send_mock):
+        json_data = {
+            "target": "xmpp@example.com",
+            "contact_info": [
+                {"protocol": "phone", "id": "+00112345678"},
+                {"protocol": "email", "id": "hunter@jobs.com"},
+                {"protocol": "phone", "id": "+4912345"},
+                {}, # this one is broken
+                None # and so is this.
+                ],
+            "contacts": [
+                # not existant:
+                "hash",
+                # goes to: my_jabber@example.com
+                "397ee3ee893ba686b8f228078803ce34911b35c8bf15a7986310de1225589fe13706a3242376da92c144a0e38e4693ac237840879947dc984870715c08793909",
+                # and twice "jid@example.com", but should only be send once:
+                "hashc6id89ad99ad",
+                "hashc6id89ad238ad",
+                # still pending: not send:
+                "e5d20f91694fde312aeb9e784178c8bd8a386d8c2789dfed7dc14a35fb8ea88fd0a1583a0a98b80058e8c9e6d7c8acd2f8c7ab240709600854f7e0bdabbc7078",
+                # self: - should be filtered out
+                "abce880ed2d448abffa8efa8939d8e15625ad16ff2330d97388f32fee480d799b9753e1d2f362c7deb1f7ea83bfbbf234712f9b45979496589812d0016e2cb48"
+                ]
+        }
+
+        send_mock.return_value = send_mock
+        send_mock.connect.return_value = True
+
+        rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
+
+        # return values
+        expect(rv.status_code).to.equal(200)
+        data = json.loads(rv.data)
+        expect(data["status"]).to.equal("requests_send")
+
+        # checking message information
+
+        send_mock.connect.assert_called_once()
+        send_mock.process.assert_called_once_with(block=True)
+
+        message = send_mock.call_args[0][3]
+
+        expect(type(message)).to.be(dict)
+        expect(isinstance(message["contact"]["jid"], basestring)).to.be(True)
+        expect(isinstance(message["contact"]["info"], basestring)).to.be(True)
+        info = json.loads(message["contact"]["info"])
+        expect(info).to.equal([
+                {'confirmed': True, "protocol": "phone", "id": "+00112345678"},
+                {'confirmed': True, "protocol": "email", "id": "hunter@jobs.com"},
+                ])
+
+        expect(message["contact"]["jid"]).to.equal("xmpp@example.com")
+
+        # checking recipients:
+        recipients = send_mock.call_args[0][2]
+        expect(recipients).to.equal(["my_jabber@example.com", "jid@example.com"])
+

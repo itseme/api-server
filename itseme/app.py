@@ -3,7 +3,7 @@ from flask import Flask, jsonify, g, Response, request, abort, make_response
 
 from itseme.providers import PROVIDERS
 from itseme.util import json_error, json_exception, _make_key
-from itseme.tasks import celery, mail
+from itseme.tasks import celery, mail, contact_request
 
 import couchdb
 import json
@@ -196,12 +196,12 @@ def contact():
         return json_error(400, "insufficient_contact_info",
                           "Couldn't confirm any of the given contact info.")
 
-    targets = []
+    contact_targets = []
     for hashkey in contacts:
         try:
             doc = g.couch[hashkey]
-            if doc["status"] == "confirmed":
-                targets.append(doc["target"])
+            if doc["status"] == "confirmed" and doc["target"] != target:
+                contact_targets.append(doc["target"])
         except KeyError:
             pass
 
@@ -210,9 +210,8 @@ def contact():
     # confirmed or not. A propoer request to /contacts
     # is a shot in the dark and hope for the best for
     # whoever is requesting
-    if targets:
-        tasks.contact_request.delay(targets,
-                dict(target=target, info=confirmed_info))
+    if contact_targets:
+        contact_request.delay(list(set(contact_targets)), target, confirmed_info)
 
     return jsonify({"status": "requests_send"})
 
