@@ -33,7 +33,8 @@ def connect_db():
 @app.route("/v1/verify/<string:hashkey>")
 def verify(hashkey):
     try:
-        doc = g.couch[hashkey]
+        PENDING_KEY = "PENDING_%s" % hashkey
+        doc = g.couch[PENDING_KEY]
         if doc["status"] != "pending":
             return make_response(jsonify(
                 {"confirmed": False,
@@ -64,7 +65,9 @@ def verify(hashkey):
         except KeyError:
             pass
 
-    # explicitly write it again
+    # remove it from the old position
+    del g.couch[PENDING_KEY]
+    # and overwrite an existing one
     g.couch[hashkey] = doc
 
     return jsonify(resp)
@@ -104,7 +107,7 @@ def register(provider, provider_id, target):
             return provider_return
         resp.update(provider_return)
 
-    g.couch[key] = doc
+    g.couch["PENDING_%s" % key] = doc
     return jsonify(resp)
 
 

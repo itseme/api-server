@@ -7,11 +7,11 @@ hashc6id89ad99ad:
 hashc6id89ad238ad:
     status: confirmed
     target: jid@example.com
-hashc6id8PENDING:
+PENDING_hashc6id8:
     status: pending
     provider: provider_two
     target: jid@example.com
-hashc6id89ad98a3:
+PENDING_hashc6id89ad98a3:
     status: pending
     provider: test_provider
     target: jid2@example.com
@@ -24,7 +24,7 @@ abce880ed2d448abffa8efa8939d8e15625ad16ff2330d97388f32fee480d799b9753e1d2f362c7d
 9f786370269dbf80fba09cb88c457330837c1b5a46e1430c3989df27f2e8e7ef1b47cb350a3b21fcdd792e853b33deef7d9158f4e572dd90e8fcca20aaab9b9f:
     status: confirmed
     target: my_jab er@example.com
-e5d20f91694fde312aeb9e784178c8bd8a386d8c2789dfed7dc14a35fb8ea88fd0a1583a0a98b80058e8c9e6d7c8acd2f8c7ab240709600854f7e0bdabbc7078:
+PENDING_e5d20f91694fde312aeb9e784178c8bd8a386d8c2789dfed7dc14a35fb8ea88fd0a1583a0a98b80058e8c9e6d7c8acd2f8c7ab240709600854f7e0bdabbc7078:
     status: pending
     target: unconfirmed@example.com
 868629caa99a9a45df39fd1783d736094b8e456570208b2c9cb47c454bfa0ca3a0839f6027bdc77ac0d2cc0099564116c6875fae873c55ca3cb568193e07ea01:

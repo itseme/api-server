@@ -96,9 +96,9 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
 
     def test_verify_not_pending(self):
         rv = self.client.get("/v1/verify/hashc6id89ad238ad")
-        expect(rv.status_code).to.equal(403)
+        expect(rv.status_code).to.equal(404)
         data = json.loads(rv.data)
-        expect(data["error"]["code"]).to.equal("not_pending")
+        expect(data["error"]["code"]).to.equal("not_found")
         expect(data["confirmed"]).to.be(False)
 
     def test_verify(self):
@@ -106,11 +106,11 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         mock_provider = MagicMock(spec=Provider)
         app.PROVIDERS["provider_two"] = lambda x: mock_provider
 
-        rv = self.client.get("/v1/verify/hashc6id8PENDING")
+        rv = self.client.get("/v1/verify/hashc6id8")
         expect(rv.status_code).to.equal(200)
         expect(json.loads(rv.data)["confirmed"]).to.be(True)
-        expect(self.database["hashc6id8PENDING"]["confirmed"]).to.be(True)
-        mock_provider.verify.assert_called_once_with(self.database["hashc6id8PENDING"])
+        expect(self.database).should_not.contain("PENDING_hashc6id8")
+        mock_provider.verify.assert_called_once_with(self.database["hashc6id8"])
 
     def test_verify_with_message(self):
 
@@ -118,13 +118,13 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         mock_provider.verify.return_value = {"we want": "candy"}
         app.PROVIDERS["provider_two"] = lambda x: mock_provider
 
-        rv = self.client.get("/v1/verify/hashc6id8PENDING")
+        rv = self.client.get("/v1/verify/hashc6id8")
         expect(rv.status_code).to.equal(200)
         expect(json.loads(rv.data)["confirmed"]).to.be(True)
         expect(json.loads(rv.data)["we want"]).to.equal("candy")
-        expect(self.database["hashc6id8PENDING"]["confirmed"]).to.be(True)
-        expect(self.database["hashc6id8PENDING"].has_key("provider")).to.be(False)
-        mock_provider.verify.assert_called_once_with(self.database["hashc6id8PENDING"])
+        expect(self.database).should_not.contain("PENDING_hashc6id8")
+        expect(self.database["hashc6id8"].has_key("provider")).to.be(False)
+        mock_provider.verify.assert_called_once_with(self.database["hashc6id8"])
 
 
     def test_verify_complaining_provider(self):
@@ -133,7 +133,7 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         mock_provider.verify.side_effect = lambda x: abort(409)
         app.PROVIDERS["provider_two"] = lambda x: mock_provider
 
-        rv = self.client.get("/v1/verify/hashc6id8PENDING")
+        rv = self.client.get("/v1/verify/hashc6id8")
         expect(rv.status_code).to.equal(409)
 
     def test_verify_returning_provider(self):
@@ -142,7 +142,7 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         mock_provider.verify.side_effect = lambda x: make_response(("Test", 303, {}))
         app.PROVIDERS["provider_two"] = lambda x: mock_provider
 
-        rv = self.client.get("/v1/verify/hashc6id8PENDING")
+        rv = self.client.get("/v1/verify/hashc6id8")
         expect(rv.status_code).to.equal(303)
 
 
@@ -188,11 +188,13 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         data = json.loads(rv.data)
         expect(data["status"]).to.equal("pending")
         key = data["hash"]
-        db_entry = self.database[key]
+        expect(self.database).should_not.contain(key)
+        expect(self.database).to.contain("PENDING_%s" % key)
+        db_entry = self.database["PENDING_%s" % key]
         expect(db_entry["provider_id"]).to.equal("master_keen")
         expect(db_entry["provider"]).to.equal("coolio_service")
 
-        mock_provider.register.assert_called_once_with(self.database[key])
+        mock_provider.register.assert_called_once_with(db_entry)
 
     def test_register_new_extended_provider(self):
 
@@ -207,12 +209,14 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         expect(data["goto"]).to.equal("/home")
 
         key = data["hash"]
-        db_entry = self.database[key]
+        expect(self.database).should_not.contain(key)
+        expect(self.database).to.contain("PENDING_%s" % key)
+        db_entry = self.database["PENDING_%s" % key]
         expect(db_entry["provider_id"]).to.equal("diddle")
         expect(db_entry["provider"]).to.equal("coolio_service")
         expect(db_entry["target"]).to.equal("xmpp@example.com")
 
-        mock_provider.register.assert_called_once_with(self.database[key])
+        mock_provider.register.assert_called_once_with(db_entry)
 
     def test_register_space_in_name(self):
 
@@ -227,12 +231,14 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         expect(data["sms"]).to.equal("send")
         key = data["hash"]
 
-        db_entry = self.database[key]
+        expect(self.database).should_not.contain(key)
+        expect(self.database).to.contain("PENDING_%s" % key)
+        db_entry = self.database["PENDING_%s" % key]
         expect(db_entry["provider_id"]).to.equal("tommy diddle")
         expect(db_entry["provider"]).to.equal("space")
         expect(db_entry["target"]).to.equal("my_jab er@example.com")
 
-        mock_provider.register.assert_called_once_with(self.database[key])
+        mock_provider.register.assert_called_once_with(db_entry)
 
 
     def test_register_self_verify_xmpp(self):
@@ -246,14 +252,17 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         data = json.loads(rv.data)
         expect(data["status"]).to.equal("pending")
         expect(data["xmpp"]).to.equal("message is out")
-        key = data["hash"]
 
-        db_entry = self.database[key]
+        key = data["hash"]
+        expect(self.database).should_not.contain(key)
+        expect(self.database).to.contain("PENDING_%s" % key)
+        db_entry = self.database["PENDING_%s" % key]
+
         expect(db_entry["provider_id"]).to.equal("new_other@example.com")
         expect(db_entry["provider"]).to.equal("xmpp")
         expect(db_entry["target"]).to.equal("new_other@example.com")
 
-        mock_provider.register.assert_called_once_with(self.database[key])
+        mock_provider.register.assert_called_once_with(db_entry)
 
     def test_contact_unknown_target(self):
         # totaly unknown to the DB
