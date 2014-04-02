@@ -205,13 +205,14 @@ def contact():
         except KeyError:
             pass
 
-    # even if no target found, we do not throw any info
-    # to not give away whether we have them or they are
-    # confirmed or not. A propoer request to /contacts
-    # is a shot in the dark and hope for the best for
-    # whoever is requesting
     if contact_targets:
         contact_request.delay(list(set(contact_targets)), target, confirmed_info)
+
+    # even if no target found, we do not throw any info
+    # to not give away whether we have them or they are
+    # confirmed or not. A proper request to /contacts
+    # is a shot in the dark and hope for the best for
+    # whoever is requesting
 
     return jsonify({"status": "requests_send"})
 
