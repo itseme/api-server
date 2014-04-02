@@ -1,10 +1,9 @@
 from flask_oauthlib.client import OAuthRemoteApp, OAuthException
 from flask import session, url_for, request
 
-from util import json_exception, json_error
+from util import json_exception, json_error, _generate_code
 
 from itseme import tasks
-import random
 
 
 class Provider(object):
@@ -23,7 +22,7 @@ class EmailProvider(Provider):
 
     def register(self, doc):
         target_id = doc["provider_id"]
-        code = "{0:.6}".format(random.random())[2:]
+        code = _generate_code(6)
         doc["email_code"] = code
         url = url_for('verify', hashkey=doc["_id"], code=code)
         tasks.send_confirm_email.delay(target_id, code, url)
@@ -45,9 +44,11 @@ class XmppProvider(Provider):
 
     def register(self, doc):
         target_id = doc["provider_id"]
-        code = "{0:.4}".format(random.random())[2:]
+        code = _generate_code()
         doc["xmpp_code"] = code
-        message = "Verification Code: {0}".format(code)
+        message = {"text": "Verification Code: {0}".format(code),
+                   "verify": { "code": code, "hash": doc["_id"]}}
+
         tasks.send_xmpp_message.delay(target_id, message)
 
     def verify(self, doc):

@@ -45,14 +45,22 @@ class TestXmppProvider(BaseTestMixin, unittest.TestCase):
         expect(json.loads(resp.data)["error"]["code"]).to.equal("faulty_code")
         expect(doc["status"]).to.equal("args")
 
-    @patch.object(SendMsgBot, "process")
-    @patch.object(SendMsgBot, "connect")
-    def test_register(self, mock_connect, mock_process):
-        doc = {"provider_id" : "nope", "status": "args",}
-        mock_connect.return_value = True
+    @patch("itseme.tasks.SendMsgBot", spec=SendMsgBot)
+    def test_register(self, send_mock):
+        doc = {"_id": "hashipu", "provider_id": "nope", "status": "args"}
+        send_mock.return_value = send_mock
+        send_mock.connect.return_value = True
         self.provider.register(doc)
 
-        mock_connect.assert_called_once()
-        mock_process.assert_called_once_with(block=True)
         expect(len(doc["xmpp_code"])).to.equal(4)
+
+        message = send_mock.call_args[0][3]
+        expect(type(message)).to.be(dict)
+        expect(isinstance(message["verify"]["code"], basestring)).to.be(True)
+        code = message["verify"]["code"]
+        expect(code).to.equal(doc["xmpp_code"])
+        expect(message["text"]).to.contain(code)
+        expect(message["verify"]["hash"]).to.equal("hashipu")
+        send_mock.connect.assert_called_once()
+        send_mock.process.assert_called_once_with(block=True)
 

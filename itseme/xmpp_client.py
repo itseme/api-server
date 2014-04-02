@@ -13,6 +13,10 @@ import sys
 import logging
 import getpass
 from optparse import OptionParser
+from sleekxmpp.xmlstream import ElementBase, register_stanza_plugin
+from sleekxmpp import Message
+
+from util import _generate_code, _make_key
 
 import sleekxmpp
 
@@ -27,6 +31,22 @@ else:
     raw_input = input
 
 
+class VerifyRequest(ElementBase):
+    name = "verify"
+    namespace = 'it-se.me:verify'
+    plugin_attrib = "verify"
+    interfaces = set(('code', 'hash'))
+    sub_interfaces = interfaces
+
+
+class ContactRequest(ElementBase):
+    name = "contact"
+    namespace = 'it-se.me:contact'
+    plugin_attrib = "contact"
+    interfaces = set(('jid', 'info'))
+    sub_interfaces = interfaces
+
+
 class SendMsgBot(sleekxmpp.ClientXMPP):
 
     """
@@ -34,12 +54,18 @@ class SendMsgBot(sleekxmpp.ClientXMPP):
     and then log out.
     """
 
-    def __init__(self, jid, password, recipient, message):
+    def __init__(self, jid, password, recipients, message):
         sleekxmpp.ClientXMPP.__init__(self, jid, password)
 
         # The message we wish to send, and the JID that
         # will receive it.
-        self.recipient = recipient
+        if not isinstance(recipients, list):
+            recipients = [recipients]
+        self.recipients = recipients
+
+        if isinstance(message, basestring):
+            message = {"text": message}
+
         self.msg = message
 
         # The session_start event will be triggered when
@@ -47,6 +73,9 @@ class SendMsgBot(sleekxmpp.ClientXMPP):
         # and the XML streams are ready for use. We want to
         # listen for this event so that we we can initialize
         # our roster.
+        register_stanza_plugin(Message, VerifyRequest)
+        register_stanza_plugin(Message, ContactRequest)
+
         self.add_event_handler("session_start", self.start, threaded=True)
 
     def start(self, event):
@@ -65,9 +94,19 @@ class SendMsgBot(sleekxmpp.ClientXMPP):
         self.send_presence()
         self.get_roster()
 
-        self.send_message(mto=self.recipient,
-                          mbody=self.msg,
-                          mtype='chat')
+        for recipient in self.recipients:
+            text = self.msg["text"]
+            message = self.make_message(recipient, text, None,
+                                        "chat", None, None, None)
+
+            if "verify" in self.msg:
+                for key, value in self.msg["verify"].iteritems():
+                    message["verify"][key] = value
+            if "contact" in self.msg:
+                for key, value in self.msg["contact"].iteritems():
+                    message["contact"][key] = value
+
+            message.send()
 
         # Using wait=True ensures that the send queue will be
         # emptied before ending the session.
@@ -99,6 +138,12 @@ if __name__ == '__main__':
     optp.add_option("-m", "--message", dest="message",
                     help="message to send")
 
+    optp.add_option("--verify", dest="verify",
+                    action='store_true', help="attach verify request")
+
+    optp.add_option("--contact", dest="contact",
+                    action='store_true', help="attach contact request")
+
     opts, args = optp.parse_args()
 
     # Setup logging.
@@ -114,10 +159,18 @@ if __name__ == '__main__':
     if opts.message is None:
         opts.message = raw_input("Message: ")
 
+    message = {"text": opts.message}
+
+    if opts.verify:
+        message["verify"] = {"code": _generate_code(), "hash": _make_key(_generate_code(6), _generate_code(6))}
+
+    if opts.contact:
+        message["contact"] = {"jid": "random@example.com", "info": "info block as json"}
+
     # Setup the EchoBot and register plugins. Note that while plugins may
     # have interdependencies, the order in which you register them does
     # not matter.
-    xmpp = SendMsgBot(opts.jid, opts.password, opts.to, opts.message)
+    xmpp = SendMsgBot(opts.jid, opts.password, opts.to, message)
     xmpp.register_plugin('xep_0030') # Service Discovery
     xmpp.register_plugin('xep_0199') # XMPP Ping
 

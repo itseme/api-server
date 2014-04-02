@@ -2,23 +2,18 @@
 from flask import Flask, jsonify, g, Response, request, abort, make_response
 
 from itseme.providers import PROVIDERS
-from itseme.util import json_error, json_exception
+from itseme.util import json_error, json_exception, _make_key
 from itseme.tasks import celery, mail
 
-
 import couchdb
-import hashlib
 import json
+
 
 app = Flask(__name__)
 
 
 def _get_db():
     return app.couch[app.config["COUCHDB_SERVER"]]
-
-
-def _make_key(*args):
-    return hashlib.sha512(":".join(args)).hexdigest()
 
 
 @app.before_first_request
