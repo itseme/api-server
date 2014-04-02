@@ -39,6 +39,7 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
             "hashes": [],
             "target": "jid@example.com"}
         rv = self.client.get("/v1/confirm/", query_string=request_data)
+        expect(rv.status_code).to.equal(200)
         expect(json.loads(rv.data)["confirmed"]).to.be(False)
 
     def test_confirm_all_found(self):
@@ -46,11 +47,20 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
             "hashes": ["hashc6id89ad98ad", "hashc6id89ad99ad", "hashc6id89ad238ad"],
             "target": "jid@example.com"}
         rv = self.client.get("/v1/confirm/", query_string=request_data)
+        expect(rv.status_code).to.equal(200)
+        expect(json.loads(rv.data)["confirmed"]).to.be(True)
+
+    def test_confirm_with_json(self):
+        request_data = {
+            "hashes": ["hashc6id89ad98ad", "hashc6id89ad99ad", "hashc6id89ad238ad"],
+            "target": "jid@example.com"}
+        rv = self.client.post("/v1/confirm/", data=json.dumps(request_data))
+        expect(rv.status_code).to.equal(200)
         expect(json.loads(rv.data)["confirmed"]).to.be(True)
 
     def test_confirm_too_many(self):
         request_data = {
-            "hashes": [str(x) for x in xrange(101)],
+            "hashes": [str(x) for x in xrange(1001)],
             "target": "jid@example.com"}
         rv = self.client.get("/v1/confirm/", query_string=request_data)
         expect(rv.status_code).to.equal(400)
@@ -239,4 +249,52 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         expect(db_entry["target"]).to.equal("new_other@example.com")
 
         mock_provider.register.assert_called_once_with(self.database[key])
+
+    def test_contact_unknown_endpoint(self):
+        # totaly unknown to the DB
+        data = {
+            "endpoint": "unknown@example.com",
+            "contact_info": [{
+                "provider": "",
+                "id": ""}],
+            "contact": ["hash", "hash"]
+        }
+        rv = self.client.post("/v1/contact/", data=json.dumps(data))
+        expect(rv.status_code).to.equal(400)
+        data = json.loads(rv.data)
+        expect(data["error"]["code"]).to.equal("endpoint_unconfirmed")
+
+        # not yet confirmed
+        data["endpoint"] = "unconfirmed@example.com"
+        rv = self.client.post("/v1/contact/", data=json.dumps(data))
+        expect(rv.status_code).to.equal(400)
+        data = json.loads(rv.data)
+        expect(data["error"]["code"]).to.equal("endpoint_unconfirmed")
+
+    def test_contact_broken_data(self):
+        rv = self.client.post("/v1/contact/")
+        expect(rv.status_code).to.equal(400)
+        data = json.loads(rv.data)
+        expect(data["error"]["code"]).to.equal("json_decode_error")
+
+        rv = self.client.post("/v1/contact/", data="String:Something")
+        expect(rv.status_code).to.equal(400)
+        data = json.loads(rv.data)
+        expect(data["error"]["code"]).to.equal("json_decode_error")
+
+
+    def test_contact_incomplete(self):
+        data = {
+            "endpoint": "unconfirmed@example.com",
+            "contact_info": [{
+                "provider": "",
+                "id": ""}],
+            "contact": ["hash", "hash"]
+        }
+        rv = self.client.post("/v1/contact/", data=json.dumps(data))
+        data = json.loads(rv.data)
+        expect(rv.status_code).to.equal(400)
+        expect(data["error"]["code"]).to.equal("endpoint_unconfirmed")
+
+
 

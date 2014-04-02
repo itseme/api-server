@@ -1,11 +1,14 @@
 # -*- encoding: utf-8 -*-
 from flask import Flask, jsonify, g, Response, request, abort, make_response
 
+from itseme.providers import PROVIDERS
+from itseme.util import json_error
+from itseme.tasks import celery, mail
+
+
 import couchdb
 import hashlib
-
-from itseme.providers import PROVIDERS
-from itseme.tasks import celery, mail
+import json
 
 app = Flask(__name__)
 
@@ -110,11 +113,16 @@ def confirm_one(hashkey, target):
         return jsonify({"confirmed": False})
 
 
-@app.route("/v1/confirm")
-@app.route("/v1/confirm/")
+@app.route("/v1/confirm/", methods=["get", "post"])
 def confirm_many():
-    target = request.args.get("target", "").strip()
-    to_confirm = request.args.getlist("hashes")
+    if request.method == "POST":
+        data = json.loads(request.data)
+        target = data["target"].strip()
+        to_confirm = data["hashes"]
+    else:
+        target = request.args.get("target", "").strip()
+        to_confirm = request.args.getlist("hashes")
+
     if not to_confirm or not target:
         return jsonify({"confirmed": False})
 
@@ -134,6 +142,18 @@ def confirm_many():
         return jsonify({"confirmed": True})
 
     return jsonify({"confirmed": False})
+
+
+@app.route("/v1/contact/", methods=["post"])
+def contact():
+    try:
+        data = json.loads(request.data)
+    except (TypeError, ValueError):
+        return json_error(400, 'json_decode_error', "Can't decode json.")
+
+    return json_error(400, "execution_failed", "")
+
+
 
 
 @app.route('/')
