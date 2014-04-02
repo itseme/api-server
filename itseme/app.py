@@ -32,8 +32,8 @@ def connect_db():
     g.couch = _get_db()
 
 
-@app.route("/v1/approve/<string:hashkey>")
-def approve(hashkey):
+@app.route("/v1/verify/<string:hashkey>")
+def verify(hashkey):
     try:
         doc = g.couch[hashkey]
         if doc["status"] != "pending":
@@ -51,7 +51,7 @@ def approve(hashkey):
 
     resp = {"confirmed": True}
 
-    provider_return = PROVIDERS[doc["provider"]](app).approve(doc)
+    provider_return = PROVIDERS[doc["provider"]](app).verify(doc)
     if provider_return:
         if isinstance(provider_return, Response):
             return provider_return

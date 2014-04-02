@@ -15,7 +15,7 @@ class Provider(object):
     def register(self, doc):
         pass
 
-    def approve(self, doc):
+    def verify(self, doc):
         pass
 
 
@@ -25,10 +25,10 @@ class EmailProvider(Provider):
         target_id = doc["provider_id"]
         code = "{0:.6}".format(random.random())[2:]
         doc["email_code"] = code
-        url = url_for('approve', hashkey=doc["_id"], code=code)
+        url = url_for('verify', hashkey=doc["_id"], code=code)
         tasks.send_confirm_email.delay(target_id, code, url)
 
-    def approve(self, doc):
+    def verify(self, doc):
         code = request.args.get("code", None)
         if not code:
             return json_error(400, "missing_code", "You need to provide the code parameter")
@@ -50,7 +50,7 @@ class XmppProvider(Provider):
         message = "Verification Code: {0}".format(code)
         tasks.send_xmpp_message.delay(target_id, message)
 
-    def approve(self, doc):
+    def verify(self, doc):
         code = request.args.get("code", None)
         if not code:
             return json_error(400, "missing_code", "You need to provide the code parameter")
@@ -76,7 +76,7 @@ class OAuthProvider(Provider):
     def register(self, doc):
         callback = None
         if request.args.get('next'):
-            callback = url_for('approve', hashkey=doc["_id"],
+            callback = url_for('verify', hashkey=doc["_id"],
                                next=request.args.get('next'))
 
         resp = self.remote.authorize(callback=callback)
@@ -86,7 +86,7 @@ class OAuthProvider(Provider):
 
         return {"goto": resp.headers['Location']}
 
-    def approve(self, doc):
+    def verify(self, doc):
         if self.key in doc:
             session[self.key] = doc.pop(self.key)
 

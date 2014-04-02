@@ -76,62 +76,62 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         rv = self.client.get("/v1/confirm/", query_string=request_data)
         expect(json.loads(rv.data)["confirmed"]).to.be(False)
 
-    def test_approve_not_found(self):
-        rv = self.client.get("/v1/approve/NOTFOUND")
+    def test_verify_not_found(self):
+        rv = self.client.get("/v1/verify/NOTFOUND")
         expect(rv.status_code).to.equal(404)
         data = json.loads(rv.data)
         expect(data["error"]["code"]).to.equal("not_found")
         expect(data["confirmed"]).to.be(False)
 
-    def test_approve_not_pending(self):
-        rv = self.client.get("/v1/approve/hashc6id89ad238ad")
+    def test_verify_not_pending(self):
+        rv = self.client.get("/v1/verify/hashc6id89ad238ad")
         expect(rv.status_code).to.equal(403)
         data = json.loads(rv.data)
         expect(data["error"]["code"]).to.equal("not_pending")
         expect(data["confirmed"]).to.be(False)
 
-    def test_approve(self):
+    def test_verify(self):
 
         mock_provider = MagicMock(spec=Provider)
         app.PROVIDERS["provider_two"] = lambda x: mock_provider
 
-        rv = self.client.get("/v1/approve/hashc6id8PENDING")
+        rv = self.client.get("/v1/verify/hashc6id8PENDING")
         expect(rv.status_code).to.equal(200)
         expect(json.loads(rv.data)["confirmed"]).to.be(True)
         expect(self.database["hashc6id8PENDING"]["confirmed"]).to.be(True)
-        mock_provider.approve.assert_called_once_with(self.database["hashc6id8PENDING"])
+        mock_provider.verify.assert_called_once_with(self.database["hashc6id8PENDING"])
 
-    def test_approve_with_message(self):
+    def test_verify_with_message(self):
 
         mock_provider = MagicMock(spec=Provider)
-        mock_provider.approve.return_value = {"we want": "candy"}
+        mock_provider.verify.return_value = {"we want": "candy"}
         app.PROVIDERS["provider_two"] = lambda x: mock_provider
 
-        rv = self.client.get("/v1/approve/hashc6id8PENDING")
+        rv = self.client.get("/v1/verify/hashc6id8PENDING")
         expect(rv.status_code).to.equal(200)
         expect(json.loads(rv.data)["confirmed"]).to.be(True)
         expect(json.loads(rv.data)["we want"]).to.equal("candy")
         expect(self.database["hashc6id8PENDING"]["confirmed"]).to.be(True)
         expect(self.database["hashc6id8PENDING"].has_key("provider")).to.be(False)
-        mock_provider.approve.assert_called_once_with(self.database["hashc6id8PENDING"])
+        mock_provider.verify.assert_called_once_with(self.database["hashc6id8PENDING"])
 
 
-    def test_approve_complaining_provider(self):
+    def test_verify_complaining_provider(self):
 
         mock_provider = MagicMock(spec=Provider)
-        mock_provider.approve.side_effect = lambda x: abort(409)
+        mock_provider.verify.side_effect = lambda x: abort(409)
         app.PROVIDERS["provider_two"] = lambda x: mock_provider
 
-        rv = self.client.get("/v1/approve/hashc6id8PENDING")
+        rv = self.client.get("/v1/verify/hashc6id8PENDING")
         expect(rv.status_code).to.equal(409)
 
-    def test_approve_returning_provider(self):
+    def test_verify_returning_provider(self):
 
         mock_provider = MagicMock(spec=Provider)
-        mock_provider.approve.side_effect = lambda x: make_response(("Test", 303, {}))
+        mock_provider.verify.side_effect = lambda x: make_response(("Test", 303, {}))
         app.PROVIDERS["provider_two"] = lambda x: mock_provider
 
-        rv = self.client.get("/v1/approve/hashc6id8PENDING")
+        rv = self.client.get("/v1/verify/hashc6id8PENDING")
         expect(rv.status_code).to.equal(303)
 
 
@@ -220,7 +220,7 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         mock_provider.register.assert_called_once_with(self.database[key])
 
 
-    def test_register_selfapprove_xmpp(self):
+    def test_register_self_verify_xmpp(self):
 
         mock_provider = MagicMock(spec=Provider)
         mock_provider.register.return_value = {"xmpp": "message is out"}

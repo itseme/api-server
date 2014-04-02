@@ -18,30 +18,30 @@ class TestEmailProvider(BaseTestMixin, unittest.TestCase):
         super(TestEmailProvider, self).setUp()
         self.provider = EmailProvider(app)
 
-    def test_approve(self):
+    def test_verify(self):
         doc = {"provider_id": "nope", "provider": "email",
                "email_code": "189839"}
         with app.test_request_context('/?code=189839'):
-            resp = self.provider.approve(doc)
+            resp = self.provider.verify(doc)
 
         expect(resp).to.be(None)
         expect(doc["status"]).to.equal("confirmed")
 
-    def test_approve_no_code(self):
+    def test_verify_no_code(self):
         doc = {"provider_id": "nope", "status": "args",
                "email_code": "189839"}
         with app.test_request_context('/?codeR=189839'):
-            resp = self.provider.approve(doc)
+            resp = self.provider.verify(doc)
 
         expect(resp.status_code).to.equal(400)
         expect(json.loads(resp.data)["error"]["code"]).to.equal("missing_code")
         expect(doc["status"]).to.equal("args")
 
-    def test_approve_faulty_code(self):
+    def test_verify_faulty_code(self):
         doc = {"provider_id": "nope", "status": "args",
                "email_code": "4758"}
         with app.test_request_context('/?code=18x839'):
-            resp = self.provider.approve(doc)
+            resp = self.provider.verify(doc)
 
         expect(resp.status_code).to.equal(400)
         expect(json.loads(resp.data)["error"]["code"]).to.equal("faulty_code")
