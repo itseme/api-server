@@ -24,6 +24,7 @@ pyasn1==0.1.7
 pyasn1-modules==0.0.5
 python-termstyle==0.1.10
 pytz==2014.2
+redis==2.9.1
 rednose==0.4.1
 six==1.6.1
 sleekxmpp==1.2.4

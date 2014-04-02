@@ -13,7 +13,7 @@ app = Flask(__name__)
 
 
 def _get_db():
-    return app.couch[app.config["COUCHDB_SERVER"]]
+    return app.couch[app.config["COUCHDB_DATABASE"]]
 
 
 @app.before_first_request
@@ -21,8 +21,8 @@ def setup_couch():
     if app.config["TESTING"]:
         return
     app.couch = couchdb.Server(app.config["COUCHDB_SERVER"])
-    if app.config["COUCHDB_SERVER"] not in app.couch:
-        app.couch.create(app.config["COUCHDB_SERVER"])
+    if app.config["COUCHDB_DATABASE"] not in app.couch:
+        app.couch.create(app.config["COUCHDB_DATABASE"])
 
 
 @app.before_request
@@ -223,10 +223,3 @@ def contact():
 @app.route('/')
 def hello_world():
     return 'Hello World!'
-
-
-if __name__ == '__main__':
-    app.config.from_object("itseme.config.DebugConfig")
-    celery.config.update(app.config)
-    mail.init_app(app)
-    app.run()

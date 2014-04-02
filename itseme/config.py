@@ -18,6 +18,11 @@ class Config(object):
 
 class DebugConfig(Config):
     SECRET_KEY = "DEBUG"
+    COUCHDB_SERVER = "http://localhost:5984/"
+    COUCHDB_DATABASE = "itseme"
+
+    BROKER_URL = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND = 'redis://localhost:6379/1'
     DEBUG = True
 
 
