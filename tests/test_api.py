@@ -148,10 +148,14 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
     def test_register_unknown_target(self):
         rv = self.client.get("/v1/register/coolio_service/master_keen/unknown@example.com")
         expect(rv.status_code).to.equal(401)
+        data = json.loads(rv.data)
+        expect(data["error"]["code"]).to.equal("target_unconfirmed")
 
     def test_register_unconfirmed(self):
         rv = self.client.get("/v1/register/coolio_service/master_keen/unconfirmed@example.com")
         expect(rv.status_code).to.equal(401)
+        data = json.loads(rv.data)
+        expect(data["error"]["code"]).to.equal("target_unconfirmed")
 
 
     def test_register_complaining_provider(self):
@@ -250,26 +254,26 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
 
         mock_provider.register.assert_called_once_with(self.database[key])
 
-    def test_contact_unknown_endpoint(self):
+    def test_contact_unknown_target(self):
         # totaly unknown to the DB
-        data = {
-            "endpoint": "unknown@example.com",
+        json_data = {
+            "target": "unknown@example.com",
             "contact_info": [{
                 "provider": "",
                 "id": ""}],
-            "contact": ["hash", "hash"]
+            "contacts": ["hash", "hash"]
         }
-        rv = self.client.post("/v1/contact/", data=json.dumps(data))
+        rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
         expect(rv.status_code).to.equal(400)
         data = json.loads(rv.data)
-        expect(data["error"]["code"]).to.equal("endpoint_unconfirmed")
+        expect(data["error"]["code"]).to.equal("target_unconfirmed")
 
         # not yet confirmed
-        data["endpoint"] = "unconfirmed@example.com"
-        rv = self.client.post("/v1/contact/", data=json.dumps(data))
+        json_data["target"] = "unconfirmed@example.com"
+        rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
         expect(rv.status_code).to.equal(400)
         data = json.loads(rv.data)
-        expect(data["error"]["code"]).to.equal("endpoint_unconfirmed")
+        expect(data["error"]["code"]).to.equal("target_unconfirmed")
 
     def test_contact_broken_data(self):
         rv = self.client.post("/v1/contact/")
@@ -282,19 +286,18 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         data = json.loads(rv.data)
         expect(data["error"]["code"]).to.equal("json_decode_error")
 
-
     def test_contact_incomplete(self):
-        data = {
-            "endpoint": "unconfirmed@example.com",
+        json_data = {
+            "target": "unconfirmed@example.com",
             "contact_info": [{
                 "provider": "",
                 "id": ""}],
-            "contact": ["hash", "hash"]
+            "contacts": ["hash", "hash"]
         }
-        rv = self.client.post("/v1/contact/", data=json.dumps(data))
+        rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
         data = json.loads(rv.data)
         expect(rv.status_code).to.equal(400)
-        expect(data["error"]["code"]).to.equal("endpoint_unconfirmed")
+        expect(data["error"]["code"]).to.equal("target_unconfirmed")
 
 
 

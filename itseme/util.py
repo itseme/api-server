@@ -7,4 +7,4 @@ def json_error(code, name, message, custom_json=None):
 
 
 def json_exception(exc, code=500):
-    json_error(code, exc.__class__.__name__, "{}".format(exc))
+    return json_error(code, exc.__class__.__name__, "{}".format(exc))

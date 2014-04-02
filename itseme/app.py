@@ -2,7 +2,7 @@
 from flask import Flask, jsonify, g, Response, request, abort, make_response
 
 from itseme.providers import PROVIDERS
-from itseme.util import json_error
+from itseme.util import json_error, json_exception
 from itseme.tasks import celery, mail
 
 
@@ -75,21 +75,31 @@ def verify(hashkey):
     return jsonify(resp)
 
 
-@app.route("/v1/register/<string:provider>/<string:provider_id>/<string:endpoint>")
-def register(provider, provider_id, endpoint):
-    endpoint = endpoint.strip()
-    if provider != "xmpp" or provider_id != endpoint:
+def _is_confirmed(target, prefix=None):
+    prefix = prefix or "xmpp"
+    return _is_confirmed_hash(_make_key(prefix, target))
+
+
+def _is_confirmed_hash(hashkey):
+    try:
+        return g.couch[hashkey]["status"] == "confirmed"
+    except KeyError:
+        return False
+
+
+@app.route("/v1/register/<string:provider>/<string:provider_id>/<string:target>")
+def register(provider, provider_id, target):
+    target = target.strip()
+    if provider != "xmpp" or provider_id != target:
         # let's prove the user is allowed to connect
-        try:
-            if g.couch[_make_key("xmpp", endpoint)]["status"] != "confirmed":
-                abort(401)
-        except KeyError:
-            abort(401)
+        if not _is_confirmed(target):
+            return json_error(401, "target_unconfirmed",
+                              "Please confirm '{}' first.".format(target))
 
     key = _make_key(provider, provider_id)
     doc = {"_id": key, "provider": provider,
            "provider_id": provider_id, "status": "pending",
-           "target": endpoint}
+           "target": target}
 
     resp = {"status": "pending", "hash": key}
 
@@ -151,9 +161,29 @@ def contact():
     except (TypeError, ValueError):
         return json_error(400, 'json_decode_error', "Can't decode json.")
 
+    try:
+        target = data["target"].strip()
+
+        if not target:
+            raise ValueError("Target can't be empty")
+        contact_info = data["contact_info"]
+
+        if not len(contact_info):
+            raise ValueError("contact_info can't be empty")
+        contacts = data["contacts"]
+
+        if not len(contacts):
+            raise ValueError("contacts can't be empty")
+    except (KeyError, ValueError), e:
+        return json_exception(e, 400)
+
+    if not _is_confirmed(target):
+        return json_error(400, "target_unconfirmed",
+                          "Please confirm '{}' first.".format(target))
+
+
+
     return json_error(400, "execution_failed", "")
-
-
 
 
 @app.route('/')
