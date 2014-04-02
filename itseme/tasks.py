@@ -49,6 +49,11 @@ this message and accept our apology for the bother.
 
 
 @celery.task()
+def contact_request(to, source):
+    pass
+
+
+@celery.task()
 def send_xmpp_message(to, message):
     # pooling would be great
     client = SendMsgBot(celery.conf.get("JID", ""),

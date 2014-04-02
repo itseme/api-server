@@ -1,10 +1,11 @@
 # -*- encoding: utf-8 -*-
-from mock import MagicMock
+from mock import MagicMock, patch
 from sure import expect
 from flask import abort, make_response
 
 from itseme.providers import Provider
 from itseme import app
+from itseme import tasks
 
 import unittest
 import json
@@ -288,16 +289,111 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
 
     def test_contact_incomplete(self):
         json_data = {
+            "target": " ",
+            "contact_info": [],
+            "contacts": []
+        }
+
+        rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
+        data = json.loads(rv.data)
+        expect(rv.status_code).to.equal(400)
+        expect(data["error"]["code"]).to.equal("ValueError")
+        expect(data["error"]["message"]).to.contain("target")
+
+        json_data["target"] = "unconfirmed@example.com"
+
+        rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
+        data = json.loads(rv.data)
+        expect(rv.status_code).to.equal(400)
+        expect(data["error"]["code"]).to.equal("ValueError")
+        expect(data["error"]["message"]).to.contain("contact_info")
+
+        json_data["contact_info"] = ["a", "b"]
+        rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
+        data = json.loads(rv.data)
+        expect(rv.status_code).to.equal(400)
+        expect(data["error"]["code"]).to.equal("ValueError")
+        expect(data["error"]["message"]).to.contain("contacts")
+
+    def test_contact_target_unconfirmed(self):
+        json_data = {
             "target": "unconfirmed@example.com",
-            "contact_info": [{
-                "provider": "",
-                "id": ""}],
+            "contact_info": ["a", "b"],
             "contacts": ["hash", "hash"]
         }
+
         rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
         data = json.loads(rv.data)
         expect(rv.status_code).to.equal(400)
         expect(data["error"]["code"]).to.equal("target_unconfirmed")
 
+    def test_contact_faulty_contact_info(self):
+        json_data = {
+            "target": "xmpp@example.com",
+            "contact_info": ["a", "b"],
+            "contacts": ["hash", "hash"]
+        }
+
+        rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
+        data = json.loads(rv.data)
+        expect(rv.status_code).to.equal(400)
+        expect(data["error"]["code"]).to.equal("insufficient_contact_info")
+
+        json_data = {
+            "target": "xmpp@example.com",
+            "contact_info": [
+                {"protocol": "facebook", "id": "abdc"},
+                {"protocol": "twitter", "id": "abracadabra"},
+                {"protocol": "phone", "id": "+4912345"},
+                # none can be confirmed unfortunately
+                {}, # this one is broken
+                None # and so is this.
+                ],
+            "contacts": ["hash", "hash"]
+        }
+
+        rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
+        data = json.loads(rv.data)
+        expect(rv.status_code).to.equal(400)
+        expect(data["error"]["code"]).to.equal("insufficient_contact_info")
 
 
+        json_data = {
+            "target": "xmpp@example.com",
+            "contact_info": [
+                # existing but not mine
+                {"protocol": "phone", "id": "+0011346648"},
+                # none can be confirmed unfortunately
+                {}, # this one is broken
+                None # and so is this.
+                ],
+            "contacts": ["hash", "hash"]
+        }
+
+        rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
+        data = json.loads(rv.data)
+        expect(rv.status_code).to.equal(400)
+        expect(data["error"]["code"]).to.equal("insufficient_contact_info")
+
+    def test_contact_faulty_hashes_still_replies(self):
+        json_data = {
+            "target": "xmpp@example.com",
+            "contact_info": [
+                {"protocol": "phone", "id": "+00112345678"},
+                {"protocol": "email", "id": "hunter@jobs.com"},
+                {"protocol": "phone", "id": "+4912345"},
+                # none can be confirmed unfortunately
+                {}, # this one is broken
+                None # and so is this.
+                ],
+            "contacts": ["hash", "hash"]
+        }
+
+        with patch.object(tasks.contact_request, "delay") as mocked_task:
+            rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
+            # though it hasn't been called!
+            expect(len(mocked_task.call_list)).to.equal(0)
+
+        expect(rv.status_code).to.equal(200)
+        data = json.loads(rv.data)
+        expect(data["status"]).to.equal("requests_send")

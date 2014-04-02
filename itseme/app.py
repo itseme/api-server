@@ -163,12 +163,14 @@ def contact():
             raise ValueError("Target can't be empty")
         contact_info = data["contact_info"]
 
-        if not len(contact_info):
+        if not contact_info:
             raise ValueError("contact_info can't be empty")
         contacts = data["contacts"]
 
-        if not len(contacts):
+        if not contacts:
             raise ValueError("contacts can't be empty")
+        if len(contacts) > 100:
+            raise ValueError("You shall not try to contact more than 100 ppl at once.")
     except (KeyError, ValueError), e:
         return json_exception(e, 400)
 
@@ -176,9 +178,43 @@ def contact():
         return json_error(400, "target_unconfirmed",
                           "Please confirm '{}' first.".format(target))
 
+    confirmed_info = []
+    for info in contact_info:
+        try:
+            protocol = info["protocol"]
+            provider_id = info["id"]
+            doc = g.couch[_make_key(protocol, provider_id)]
+            if doc["status"] == "confirmed" and doc["target"] == target:
+                confirmed_info.append(dict(confirmed=True,
+                                           protocol=protocol,
+                                           id=provider_id
+                                           ))
+        except (KeyError, TypeError, ValueError):
+            pass
 
+    if not confirmed_info:
+        return json_error(400, "insufficient_contact_info",
+                          "Couldn't confirm any of the given contact info.")
 
-    return json_error(400, "execution_failed", "")
+    targets = []
+    for hashkey in contacts:
+        try:
+            doc = g.couch[hashkey]
+            if doc["status"] == "confirmed":
+                targets.append(doc["target"])
+        except KeyError:
+            pass
+
+    # even if no target found, we do not throw any info
+    # to not give away whether we have them or they are
+    # confirmed or not. A propoer request to /contacts
+    # is a shot in the dark and hope for the best for
+    # whoever is requesting
+    if targets:
+        tasks.contact_request.delay(targets,
+                dict(target=target, info=confirmed_info))
+
+    return jsonify({"status": "requests_send"})
 
 
 @app.route('/')
