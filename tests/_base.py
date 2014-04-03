@@ -2,11 +2,19 @@
 from itseme import app
 from itseme import tasks
 
+from couchdb.http import ResourceNotFound
+
 import yaml
 
+class CouchdbDict(dict):
+    def __getitem__(self, key):
+        try:
+            return dict.__getitem__(self, key)
+        except KeyError:
+            raise ResourceNotFound(key)
 
 def load_db():
-    return yaml.load(open("tests/test_data.yml"))
+    return CouchdbDict(yaml.load(open("tests/test_data.yml")))
 
 
 class BaseTestMixin(object):

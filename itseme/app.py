@@ -5,6 +5,8 @@ from itseme.providers import PROVIDERS
 from itseme.util import json_error, json_exception, _make_key
 from itseme.tasks import celery, mail, contact_request
 
+from couchdb.http import ResourceNotFound
+
 import couchdb
 import json
 
@@ -41,7 +43,7 @@ def verify(hashkey):
                  "error": {"code": "not_pending",
                            "message": "Hash isn't pending"}}
                 ), 403)
-    except KeyError:
+    except (KeyError, ResourceNotFound):
         return make_response(jsonify(
             {"confirmed": False,
              "error": {"code": "not_found",
@@ -81,7 +83,7 @@ def _is_confirmed(target, prefix=None):
 def _is_confirmed_hash(hashkey):
     try:
         return g.couch[hashkey]["status"] == "confirmed"
-    except KeyError:
+    except (KeyError, ResourceNotFound):
         return False
 
 
@@ -117,7 +119,7 @@ def confirm_one(hashkey, target):
         doc = g.couch[hashkey]
         return jsonify({"confirmed": doc["status"] == "confirmed" and
                         doc["target"] == target.strip()})
-    except KeyError:
+    except (KeyError, ResourceNotFound):
         return jsonify({"confirmed": False})
 
 
@@ -143,7 +145,7 @@ def confirm_many():
             if doc["status"] != "confirmed" or \
                     doc["target"] != target:
                 break
-        except KeyError:
+        except (KeyError, ResourceNotFound):
             break
     else:
         # We could run through without a break, means we are good
@@ -192,7 +194,7 @@ def contact():
                                            protocol=protocol,
                                            id=provider_id
                                            ))
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError, ResourceNotFound):
             pass
 
     if not confirmed_info:
@@ -205,7 +207,7 @@ def contact():
             doc = g.couch[hashkey]
             if doc["status"] == "confirmed" and doc["target"] != target:
                 contact_targets.append(doc["target"])
-        except KeyError:
+        except (KeyError, ResourceNotFound):
             pass
 
     if contact_targets:
