@@ -97,11 +97,22 @@ def register(provider, provider_id, target):
                               "Please confirm '{}' first.".format(target))
 
     key = _make_key(provider, provider_id)
-    doc = {"_id": key, "provider": provider,
-           "provider_id": provider_id, "status": "pending",
-           "target": target}
-
     resp = {"status": "pending", "hash": key}
+
+    try:
+        doc = g.couch["PENDING_%s" % key]
+    except ResourceNotFound:
+        doc = {"_id": key, "provider": provider, "target": target,
+               "provider_id": provider_id, "status": "pending"}
+    else:
+        print doc, target
+        if doc["target"] == target:
+            if not request.args.get("resend"):
+                return jsonify(resp)
+            else:
+                doc["retries"] = doc.get("retries", 0) + 1
+        else:
+            doc["target"] = target
 
     provider_return = PROVIDERS[provider](app).register(doc)
     if provider_return:

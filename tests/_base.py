@@ -2,9 +2,10 @@
 from itseme import app
 from itseme import tasks
 
-from couchdb.http import ResourceNotFound
+from couchdb.http import ResourceNotFound, ResourceConflict
 
 import yaml
+
 
 class CouchdbDict(dict):
     def __getitem__(self, key):
@@ -12,6 +13,14 @@ class CouchdbDict(dict):
             return dict.__getitem__(self, key)
         except KeyError:
             raise ResourceNotFound(key)
+
+    def __setitem__(self, key, value):
+        existing = dict.get(self, key, None)
+        if existing and existing["_rev"]:
+            if not value.get("_rev", None) or value.get("_rev", None) != existing["_rev"]:
+                raise ResourceConflict()
+        return dict.__setitem__(self, key, value)
+
 
 def load_db():
     return CouchdbDict(yaml.load(open("tests/test_data.yml")))

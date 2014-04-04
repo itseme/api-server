@@ -39,3 +39,8 @@ e73e75f1d339ad55a26710736159f3a6acb9191502dda8737a0ec5a16e1ae65ead9fb7bc41c1a433
     status: confirmed
     email: hunter@jobs.com
     target: xmpp@example.com
+PENDING_501b25b95d1c254d07c792107ddaf3eaac525a47cf393621b418c0834d2f9577804bafda72764bb2050534d263c2f00a1cc549cb735cf86abbafd3b44643af63:
+    status: pending
+    email: home@example.com
+    _rev: 12345
+    target: xmpp@example.com

@@ -145,7 +145,6 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         rv = self.client.get("/v1/verify/hashc6id8")
         expect(rv.status_code).to.equal(303)
 
-
     def test_register_unknown_target(self):
         rv = self.client.get("/v1/register/coolio_service/master_keen/unknown@example.com")
         expect(rv.status_code).to.equal(401)
@@ -158,9 +157,7 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         data = json.loads(rv.data)
         expect(data["error"]["code"]).to.equal("target_unconfirmed")
 
-
     def test_register_complaining_provider(self):
-
         mock_provider = MagicMock(spec=Provider)
         mock_provider.register.side_effect = lambda x: abort(409)
         app.PROVIDERS["coolio_service"] = lambda x: mock_provider
@@ -240,6 +237,72 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
 
         mock_provider.register.assert_called_once_with(db_entry)
 
+    def test_registered_twice(self):
+
+        mock_provider = MagicMock(spec=Provider)
+        mock_provider.register.side_effect = ValueError()
+        app.PROVIDERS["email"] = lambda x: mock_provider
+
+        rv = self.client.get("/v1/register/email/home@example.com/xmpp@example.com")
+        expect(rv.status_code).to.equal(200)
+        data = json.loads(rv.data)
+        expect(data["status"]).to.equal("pending")
+        key = data["hash"]
+
+        expect(self.database).should_not.contain(key)
+        expect(self.database).to.contain("PENDING_%s" % key)
+        db_entry = self.database["PENDING_%s" % key]
+        # make sure it hasn't been touched
+        expect(db_entry["email"]).to.equal("home@example.com")
+        expect(db_entry["target"]).to.equal("xmpp@example.com")
+
+        expect(mock_provider.register.called).should.be(False)
+
+    def test_registered_twice_explicit_redo(self):
+
+        mock_provider = MagicMock(spec=Provider)
+        mock_provider.register.return_value = {"sms": "send"}
+        app.PROVIDERS["email"] = lambda x: mock_provider
+
+        # already registered, but asked to resend
+        rv = self.client.get("/v1/register/email/home@example.com/xmpp@example.com?resend=1")
+        expect(rv.status_code).to.equal(200)
+        data = json.loads(rv.data)
+        expect(data["status"]).to.equal("pending")
+        expect(data["sms"]).to.equal("send")
+        key = data["hash"]
+
+        expect(self.database).should_not.contain(key)
+        expect(self.database).to.contain("PENDING_%s" % key)
+        db_entry = self.database["PENDING_%s" % key]
+
+        # shouldn't have been touched, aside from the increase in retries
+        expect(db_entry).should_not.contain("provider_id")
+        expect(db_entry["retries"]).to.equal(1)
+        expect(db_entry["email"]).to.equal("home@example.com")
+        expect(db_entry["target"]).to.equal("xmpp@example.com")
+
+        mock_provider.register.assert_called_once_with(db_entry)
+
+    def test_registered_overwrite(self):
+
+        mock_provider = MagicMock(spec=Provider)
+        mock_provider.register.return_value = {"sms": "send"}
+        app.PROVIDERS["email"] = lambda x: mock_provider
+
+        rv = self.client.get("/v1/register/email/home@example.com/my_jabber@example.com")
+        expect(rv.status_code).to.equal(200)
+        data = json.loads(rv.data)
+        expect(data["status"]).to.equal("pending")
+        expect(data["sms"]).to.equal("send")
+        key = data["hash"]
+
+        expect(self.database).should_not.contain(key)
+        expect(self.database).to.contain("PENDING_%s" % key)
+        db_entry = self.database["PENDING_%s" % key]
+        expect(db_entry["target"]).to.equal("my_jabber@example.com")
+
+        mock_provider.register.assert_called_once_with(db_entry)
 
     def test_register_self_verify_xmpp(self):
 
