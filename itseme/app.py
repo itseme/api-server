@@ -8,6 +8,7 @@ from itseme.tasks import celery, mail, contact_request
 from couchdb.http import ResourceNotFound
 
 import couchdb
+import redis
 import json
 
 
@@ -18,6 +19,20 @@ def _get_db():
     return app.couch[app.config["COUCHDB_DATABASE"]]
 
 
+@app.before_request
+def throttle_request():
+    if app.config["TESTING"]:
+        return
+    ip = request.remote_addr
+    if int(app.redis.get(ip) or 0) > app.config["REQUEST_THROTTLE"]:
+        return json_error(403, "request_limit_reached",
+                          "You've reached your requests limit.")
+    app.redis.pipeline(
+        ).incr(ip
+        ).expire(ip, app.config["REQUEST_THROTTLE_SECONDS"]
+        ).execute()
+
+
 @app.before_first_request
 def setup_couch():
     if app.config["TESTING"]:
@@ -25,6 +40,8 @@ def setup_couch():
     app.couch = couchdb.Server(app.config["COUCHDB_SERVER"])
     if app.config["COUCHDB_DATABASE"] not in app.couch:
         app.couch.create(app.config["COUCHDB_DATABASE"])
+
+    app.redis = redis.from_url(app.config["REDIS_APP_CACHE"])
 
 
 @app.before_request
