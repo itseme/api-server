@@ -53,7 +53,7 @@ this message and accept our apology for the bother.
 
 @celery.task()
 def contact_request(to, jid, info):
-    info_block = [":".join([x["protocol"], x["id"]]) for x in info]
+    info_block = [": ".join([x["protocol"], x["id"]]) for x in info]
     text = """Hey there,
 {0} asked whether they are allowed to get in contact with you.
 They provided the following contact details for you to confirm
