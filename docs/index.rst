@@ -9,8 +9,14 @@ It-se.me
 
 **It-se.me** is a secure, privacy-focussed contact interchange service. Heck, it is so concerned about privacy, it itself doesn't know your contact details.
 
-Intrigued?
-----------
+Want to learn more?
+-------------------
 
- - Learn more about the concepts and idea
- - Learn about the API
+.. toctree::
+   :maxdepth: 2
+
+  forward
+  concept
+  api
+  technologies
+  faq
