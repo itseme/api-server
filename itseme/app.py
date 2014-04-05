@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
-from flask import Flask, jsonify, g, Response, request, abort, make_response
+from flask import (Flask, jsonify, g, Response, request,
+                   abort, make_response, redirect)
 
 from itseme.providers import PROVIDERS
 from itseme.util import json_error, json_exception, _make_key
@@ -253,3 +254,8 @@ def contact():
 @app.route('/version')
 def version():
     return jsonify({"version": VERSION})
+
+
+@app.route('/')
+def index():
+    return redirect("http://www.it-se.me")
