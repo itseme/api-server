@@ -64,7 +64,8 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
             "hashes": [str(x) for x in xrange(1001)],
             "target": "jid@example.com"}
         rv = self.client.get("/v1/confirm/", query_string=request_data)
-        expect(rv.status_code).to.equal(400)
+        expect(rv.status_code).to.equal(413)
+        expect(json.loads(rv.data)["error"]["code"]).to.equal("too_many_requested")
 
     def test_confirm_all_found_one_pending(self):
         request_data = {
@@ -339,7 +340,6 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
         expect(rv.status_code).to.equal(400)
         data = json.loads(rv.data)
-        print data["error"]["message"]
         expect(data["error"]["code"]).to.equal("target_unconfirmed")
 
         # not yet confirmed
@@ -370,7 +370,7 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
         data = json.loads(rv.data)
         expect(rv.status_code).to.equal(400)
-        expect(data["error"]["code"]).to.equal("ValueError")
+        expect(data["error"]["code"]).to.equal("value_error")
         expect(data["error"]["message"]).to.contain("target")
 
         json_data["target"] = "unconfirmed@example.com"
@@ -378,14 +378,21 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
         data = json.loads(rv.data)
         expect(rv.status_code).to.equal(400)
-        expect(data["error"]["code"]).to.equal("ValueError")
+        expect(data["error"]["code"]).to.equal("value_error")
         expect(data["error"]["message"]).to.contain("contact_info")
 
         json_data["contact_info"] = ["a", "b"]
         rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
         data = json.loads(rv.data)
         expect(rv.status_code).to.equal(400)
-        expect(data["error"]["code"]).to.equal("ValueError")
+        expect(data["error"]["code"]).to.equal("value_error")
+        expect(data["error"]["message"]).to.contain("contacts")
+
+        json_data.pop("contact_info")
+        rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
+        data = json.loads(rv.data)
+        expect(rv.status_code).to.equal(400)
+        expect(data["error"]["code"]).to.equal("key_error")
         expect(data["error"]["message"]).to.contain("contacts")
 
     def test_contact_target_unconfirmed(self):
@@ -399,6 +406,18 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         data = json.loads(rv.data)
         expect(rv.status_code).to.equal(400)
         expect(data["error"]["code"]).to.equal("target_unconfirmed")
+
+    def test_contact_too_many(self):
+        json_data = {
+            "target": "unconfirmed@example.com",
+            "contact_info": ["a", "b"],
+            "contacts": [str(x) for x in xrange(1001)]
+        }
+
+        rv = self.client.post("/v1/contact/", data=json.dumps(json_data))
+        expect(rv.status_code).to.equal(413)
+        expect(json.loads(rv.data)["error"]["code"]
+              ).to.equal("too_many_requested")
 
     def test_contact_faulty_contact_info(self):
         json_data = {
