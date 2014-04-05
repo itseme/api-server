@@ -55,17 +55,11 @@ def verify(hashkey):
         PENDING_KEY = "PENDING_%s" % hashkey
         doc = g.couch[PENDING_KEY]
         if doc["status"] != "pending":
-            return make_response(jsonify(
-                {"confirmed": False,
-                 "error": {"code": "not_pending",
-                           "message": "Hash isn't pending"}}
-                ), 403)
+            return json_error(403, "not_pending", "Hash isn't pending",
+                              {"confirmed": False})
     except (KeyError, ResourceNotFound):
-        return make_response(jsonify(
-            {"confirmed": False,
-             "error": {"code": "not_found",
-                       "message": "Can't find Hash"}}
-            ), 404)
+        return json_error(404, "not_found", "Can't find Hash",
+                          {"confirmed": False})
 
     resp = {"confirmed": True}
 
