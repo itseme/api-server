@@ -4,6 +4,7 @@ from flask import Flask, jsonify, g, Response, request, abort, make_response
 from itseme.providers import PROVIDERS
 from itseme.util import json_error, json_exception, _make_key
 from itseme.tasks import celery, mail, contact_request
+from itseme import VERSION
 
 from couchdb.http import ResourceNotFound
 
@@ -55,7 +56,8 @@ def verify(hashkey):
         PENDING_KEY = "PENDING_%s" % hashkey
         doc = g.couch[PENDING_KEY]
         if doc["status"] != "pending":
-            return json_error(403, "not_pending", "Hash isn't pending",
+            return json_error(403, "not_pending",
+                              "Hash isn't pending",
                               {"confirmed": False})
     except (KeyError, ResourceNotFound):
         return json_error(404, "not_found", "Can't find Hash",
@@ -158,8 +160,9 @@ def confirm_many():
     if not to_confirm or not target:
         return jsonify({"confirmed": False})
 
-    if len(to_confirm) > 100:
-        abort(400)
+    if len(to_confirm) > 500:
+        return json_error(413, "too_many_requested",
+                         "I won't confirm lists bigger than 500 entries")
 
     for hashkey in to_confirm:
         try:
@@ -181,7 +184,8 @@ def contact():
     try:
         data = json.loads(request.data)
     except (TypeError, ValueError):
-        return json_error(400, 'json_decode_error', "Can't decode json.")
+        return json_error(400, 'json_decode_error',
+                          "Can't decode json.")
 
     try:
         target = data["target"].strip()
@@ -197,7 +201,8 @@ def contact():
         if not contacts:
             raise ValueError("contacts can't be empty")
         if len(contacts) > 100:
-            raise ValueError("You shall not try to contact more than 100 ppl at once.")
+            return json_error(413, "too_many_requested",
+                        "You shall not try to contact more than 100 ppl at once.")
     except (KeyError, ValueError), e:
         return json_exception(e, 400)
 
@@ -233,7 +238,8 @@ def contact():
             pass
 
     if contact_targets:
-        contact_request.delay(list(set(contact_targets)), target, confirmed_info)
+        contact_request.delay(list(set(contact_targets)),
+                              target, confirmed_info)
 
     # even if no target found, we do not throw any info
     # to not give away whether we have them or they are
@@ -244,6 +250,6 @@ def contact():
     return jsonify({"status": "requests_send"})
 
 
-@app.route('/')
-def hello_world():
-    return 'Hello World!'
+@app.route('/version')
+def version():
+    return jsonify({"version": VERSION})
