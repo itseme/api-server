@@ -33,7 +33,9 @@ Error Codes and Messages
 
 For general Error reporting, we are using HTTP-Error-Codes. Further
 those provide some insight of what went wrong as json like in this
-example::
+example:
+
+.. code-block:: json
 
   {
       "error": {
@@ -66,7 +68,9 @@ please attach the "?resend=1" parameter to the call, which will
 generate and send a new code.
 
 If everything goes according to plan, you'll receive a json response
-as follows::
+as follows:
+
+.. code-block:: json
 
  {
   "status": "pending",
@@ -156,7 +160,9 @@ endpoint for some OAuth2-based providers like `Github` or `Facebook`.
 If the given code matches the code in the system, a successful return
 confirms the authentication happened and deleted the reference to
 the previously provided `provider_id`. The returning JSON would like
-like this::
+like this:
+
+.. code-block:: json
 
   {
    "confirmed": true
@@ -213,16 +219,18 @@ URL:
 Supported Methods:
    POST
 
-Post data (JSON-formatted String)::
+Post data (JSON-formatted String):
+
+.. code-block:: json
 
   {
-    "target": "xmpp@example.com", # the requesting account
-    "contact_info": [             # their confirmed contact details
+    "target": "xmpp@example.com",
+    "contact_info": [
         {"protocol": "phone", "id": "+00112345678"},
         {"protocol": "email", "id": "hunter@jobs.com"},
         {"protocol": "phone", "id": "+4912345"}
         ],
-    "contacts": [      # `SHA512(provider + ":" + provider_id )` of contacts in the address book
+    "contacts": [
         "397ee3ee893ba686b8f228078803ce34911b35c8bf15a7986310de1225589fe13706a3242376da92c144a0e38e4693ac237840879947dc984870715c08793909",
         "e5d20f91694fde312aeb9e784178c8bd8a386d8c2789dfed7dc14a35fb8ea88fd0a1583a0a98b80058e8c9e6d7c8acd2f8c7ab240709600854f7e0bdabbc7078",
         "abce880ed2d448abffa8efa8939d8e15625ad16ff2330d97388f32fee480d799b9753e1d2f362c7deb1f7ea83bfbbf234712f9b45979496589812d0016e2cb48"
@@ -242,7 +250,9 @@ infos for matching against their own address book. See
 itseme-extension in messages, see :ref:`itseme-contact-extension`.
 
 If everything goes well and independant of the number of matches found
-(even if none), the returning response will be ::
+(even if none), the returning response will be:
+
+.. code-block:: json
 
   {
     "status": "requests_send"
@@ -291,12 +301,17 @@ Supported Methods:
 
 Confirm that the given `hashkey` links to the provided `target`.
 Returns a json if and only if the hashkey was found and the stored
-target matches the provided one::
+target matches the provided one:
+
+.. code-block:: json
+
 
   {"confirmed": true}
 
 In any other case (also if the key wasn't found or isn't verified yet)
-it will return a false value for the check::
+it will return a false value for the check:
+
+.. code-block:: json
 
   {"confirmed": false}
 
@@ -314,7 +329,9 @@ URL:
 Supported Methods:
    POST
 
-Post Data::
+Post Data:
+
+.. code-block:: json
 
   {
     "hashes": [
@@ -322,16 +339,20 @@ Post Data::
       "e5d20f91694fde312aeb9e784178c8bd8a386d8c2789dfed7dc14a35fb8ea88fd0a1583a0a98b80058e8c9e6d7c8acd2f8c7ab240709600854f7e0bdabbc7078"
     ],
     "target": "jid@example.com"
-  }
+   }
 
 
 Confirm that the given `hashes` all link to the provided `target`.
-Returns a json if so::
+Returns a json if so:
+
+.. code-block:: json
 
   {"confirmed": true}
 
 If at least one hashkey wasn't found, isn't confirmed yet or doesn't
-match the provided target, it will return a falsy value instead::
+match the provided target, it will return a falsy value instead:
+
+.. code-block:: json
 
   {"confirmed": false}
 
@@ -351,6 +372,8 @@ Supported Methods:
    GET
 
 Returns a json-response confirming the server version. Mainly for
-debugging purposes::
+debugging purposes:
+
+.. code-block:: json
 
   {"version": "0.9-rc2"}
