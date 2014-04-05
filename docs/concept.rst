@@ -68,9 +68,10 @@ Twitter Account, Github and Email-Address. For each access-type
 the service will only store the hash and the given new target address
 to talk to later. Through which a reverse look up is not possible.
 
-Contact Lookup and mataching
-----------------------------
+.. :ref: contact-matching
 
+Contact Lookup and matching
+---------------------------
 The server knows that behind a given hash of medium+specificId
 is a given jabber-account to talk to. This one belongs to Amy but
 the service doesn't know and also doesn't care. Her friend Michael
