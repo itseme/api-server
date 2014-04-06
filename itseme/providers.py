@@ -173,6 +173,7 @@ class Twitter(OAuthProvider):
 
 class Github(OAuthProvider):
     name = "github"
+    always_callback = True
     config = dict(app_key="GITHUB",
                   request_token_params={'scope': 'user'},
                   base_url='https://api.github.com/',
@@ -183,7 +184,7 @@ class Github(OAuthProvider):
 
     def confirm(self, doc, data):
         user_data = self.remote.get("user")
-        return user_data["login"] == doc["provider_id"]
+        return user_data.data["login"] == doc["provider_id"]
 
 
 PROVIDERS = {

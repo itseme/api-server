@@ -2,7 +2,7 @@
 import test_oauth_provider
 from itseme.providers import Github
 
-from mock import patch
+from mock import patch, Mock
 from sure import expect
 
 # AS COLLECTED FROM https://developer.github.com/v3/users/#get-the-authenticated-user
@@ -55,8 +55,10 @@ class TestGithubProvider(test_oauth_provider.TestOAuthProvider):
 
     def test_confirm_user_matches(self):
         doc = {"provider_id": "octocat"}
+        v = Mock()
+        v.data = RETURN_VALUE
         with patch.object(self.remote, "get") as getter:
-            getter.return_value = RETURN_VALUE
+            getter.return_value = v
             resp = self.provider.confirm(doc, "something")\
 
             expect(resp).to.be(True)
@@ -64,8 +66,10 @@ class TestGithubProvider(test_oauth_provider.TestOAuthProvider):
 
     def test_confirm_user_doesnt_match(self):
         doc = {"provider_id": "octocat_is_not"}
+        v = Mock()
+        v.data = RETURN_VALUE
         with patch.object(self.remote, "get") as getter:
-            getter.return_value = RETURN_VALUE
+            getter.return_value = v
             resp = self.provider.confirm(doc, "something")\
 
             expect(resp).to.be(False)
