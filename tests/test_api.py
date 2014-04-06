@@ -103,7 +103,6 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         expect(data["confirmed"]).to.be(False)
 
     def test_verify(self):
-
         mock_provider = MagicMock(spec=Provider)
         app.PROVIDERS["provider_two"] = lambda x: mock_provider
 
@@ -112,6 +111,17 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         expect(json.loads(rv.data)["confirmed"]).to.be(True)
         expect(self.database).should_not.contain("PENDING_hashc6id8")
         mock_provider.verify.assert_called_once_with(self.database["hashc6id8"])
+
+    def test_verify_already_exists(self):
+        mock_provider = MagicMock(spec=Provider)
+        app.PROVIDERS["test_provider"] = lambda x: mock_provider
+
+        rv = self.client.get("/v1/verify/ALREADY_EXISTS")
+        expect(rv.status_code).to.equal(200)
+        expect(json.loads(rv.data)["confirmed"]).to.be(True)
+        expect(self.database).should_not.contain("PENDING_ALREADY_EXISTS")
+        mock_provider.verify.assert_called_once_with(self.database["ALREADY_EXISTS"])
+
 
     def test_verify_with_message(self):
 

@@ -7,7 +7,7 @@ from itseme.util import json_error, json_exception, _make_key
 from itseme.tasks import celery, mail, contact_request
 from itseme import VERSION
 
-from couchdb.http import ResourceNotFound
+from couchdb.http import ResourceNotFound, ResourceConflict
 
 import couchdb
 import redis
@@ -83,8 +83,11 @@ def verify(hashkey):
 
     # remove it from the old position
     del g.couch[PENDING_KEY]
-    # and overwrite an existing one
-    g.couch[hashkey] = doc
+    try:
+        g.couch[hashkey] = doc
+    except ResourceConflict:
+        del g.couch[hashkey]
+        g.couch[hashkey] = doc
 
     return jsonify(resp)
 

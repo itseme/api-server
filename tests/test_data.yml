@@ -7,6 +7,14 @@ hashc6id89ad99ad:
 hashc6id89ad238ad:
     status: confirmed
     target: jid@example.com
+ALREADY_EXISTS:
+    status: confirmed
+    _rev: 1234
+    target: jid_old@example.com
+PENDING_ALREADY_EXISTS:
+    status: pending
+    provider: "test_provider"
+    target: new@example.com
 PENDING_hashc6id8:
     status: pending
     provider: provider_two
