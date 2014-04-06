@@ -79,6 +79,7 @@ class SmsProvider(SimpleVerifyMixin, Provider):
 class OAuthProvider(Provider):
 
     name = ""
+    always_callback = False
     config = {}
 
     def __init__(self, app):
@@ -88,9 +89,9 @@ class OAuthProvider(Provider):
 
     def register(self, doc):
         callback = None
-        if request.args.get('next'):
+        if request.args.get('next') or self.always_callback:
             callback = url_for('verify', hashkey=doc["_id"],
-                               next=request.args.get('next'))
+                               next=request.args.get('next') or "/v1/verified")
 
         resp = self.remote.authorize(callback=callback)
 
@@ -100,6 +101,7 @@ class OAuthProvider(Provider):
         return {"goto": resp.headers['Location']}
 
     def verify(self, doc):
+
         if self.key in doc:
             session[self.key] = doc.pop(self.key)
 
@@ -107,22 +109,32 @@ class OAuthProvider(Provider):
             try:
                 data = self.remote.handle_oauth1_response()
             except OAuthException as e:
+                if self.app.debug: raise
                 return json_exception(e)
         elif 'code' in request.args:
             try:
                 data = self.remote.handle_oauth2_response()
             except OAuthException as e:
+                if self.app.debug: raise
                 return json_exception(e)
         else:
             return json_error(400, "missing_code",
                     "You need to provide either oauth_verifier or code")
+
+        print data
+
+        def getter():
+            return data
+
+        self.remote.tokengetter(getter)
 
         try:
             if not self.confirm(doc, data):
                 return json_error(400, "wrong_user",
                         "The user doesn't match. Sorry")
         except Exception, e:
-            return json_exception(500, e)
+            if self.app.debug: raise
+            return json_exception(e, 500)
 
         doc["status"] = "confirmed"
 
@@ -146,15 +158,15 @@ class Facebook(OAuthProvider):
 
 class Twitter(OAuthProvider):
     name = "twitter"
-    config = dict(base_url='https://api.twitter.com/1/',
+    always_callback = True
+    config = dict(base_url='https://api.twitter.com/1.1/',
                   request_token_url='https://api.twitter.com/oauth/request_token',
                   access_token_url='https://api.twitter.com/oauth/access_token',
-                  authorize_url='https://api.twitter.com/oauth/authenticate',
+                  authorize_url='https://api.twitter.com/oauth/authorize',
                   app_key='TWITTER')
 
     def confirm(self, doc, data):
-        user_data = self.remote.get("account/verify_credentials.json?skip_status=1")
-        return user_data["screen_name"] == doc["provider_id"]
+        return data["screen_name"] == doc["provider_id"]
 
 
 class Github(OAuthProvider):

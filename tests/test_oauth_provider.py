@@ -27,6 +27,7 @@ class TestOAuthProvider(BaseTestMixin, unittest.TestCase):
         self.provider.remote = self.remote
 
     def test_register_environ(self):
+        self.remote.authorize = MagicMock()
         self.remote.authorize.return_value = redirect("http://home.example.com/something?8=a")
         doc = {"provider_id": "test_id", "_id": "HASHIKU"}
 
@@ -35,11 +36,15 @@ class TestOAuthProvider(BaseTestMixin, unittest.TestCase):
 
         expect(resp["goto"]).to.equal("http://home.example.com/something?8=a")
         expect(doc.get(self.provider.key, "X")).to.equal("X")
-        self.remote.authorize.assert_called_once_with(callback=None)
+        if self.provider.always_callback:
+            expect(self.remote.authorize.call_args[1]["callback"]).to.not_be(None)
+            expect(self.remote.authorize.call_args[1]["callback"]).to.contain("HASHIKU")
+        else:
+            self.remote.authorize.assert_called_once_with(callback=None)
 
     def test_register_environ_with_next(self):
         self.remote.authorize.return_value = redirect("http://home.example.com/something?8=a")
-        doc = {"provider_id": "test_id", "_id": "HASHIKU"}
+        doc = {"provider_id": "test_id", "_id": "OTHERHASH"}
 
         with app.test_request_context('/?name=Peter&next=whatever.com'):
             session[self.provider.key] = ["a", "b"]
@@ -48,6 +53,7 @@ class TestOAuthProvider(BaseTestMixin, unittest.TestCase):
         expect(resp["goto"]).to.equal("http://home.example.com/something?8=a")
         expect(doc[self.provider.key]).to.equal(["a", "b"])
         self.remote.authorize.assert_called_once()
+        expect(self.remote.authorize.call_args[0]).to.contain("OTHERHASH")
         expect(self.remote.authorize.call_args[0]).to.contain("next=whatever.com")
 
     def test_verify_with_code_environ(self):

@@ -5,7 +5,7 @@ from itseme.providers import Twitter
 from mock import patch
 from sure import expect
 
-RETURN_VALUE = {"name": "Matt Harris",
+RETURN_VALUE = {"screen_name": "Matt Harris",
                 "profile_sidebar_border_color": "C0DEED",
                 "profile_background_tile": False,
                 "profile_sidebar_fill_color": "DDEEF6",
@@ -37,24 +37,17 @@ RETURN_VALUE = {"name": "Matt Harris",
     }
 
 
-
 class TestTwitterProvider(test_oauth_provider.TestOAuthProvider):
     provider_class = Twitter
 
     def test_confirm_user_matches(self):
         doc = {"provider_id": "themattharris"}
-        with patch.object(self.remote, "get") as getter:
-            getter.return_value = RETURN_VALUE
-            resp = self.provider.confirm(doc, "something")\
+        resp = self.provider.confirm(doc, RETURN_VALUE)
 
-            expect(resp).to.be(True)
-            getter.assert_called_once_with("account/verify_credentials.json?skip_status=1")
+        expect(resp).to.be(True)
 
     def test_confirm_user_doesnt_match(self):
         doc = {"provider_id": "octocat"}
-        with patch.object(self.remote, "get") as getter:
-            getter.return_value = RETURN_VALUE
-            resp = self.provider.confirm(doc, "something")\
+        resp = self.provider.confirm(doc, RETURN_VALUE)
 
-            expect(resp).to.be(False)
-            getter.assert_called_once_with("account/verify_credentials.json?skip_status=1")
+        expect(resp).to.be(False)

@@ -28,9 +28,24 @@ class Config(object):
     MAIL_PASSWORD = environ.get("MAIL_PASSWORD", "")
     MAIL_DEFAULT_SENDER = environ.get("MAIL_DEFAULT_SENDER", "")
 
+    # Twilio for SMS/Phone support
     TWILIO_SID = environ.get("TWILIO_SID", "")
     TWILIO_TOKEN = environ.get("TWILIO_TOKEN", "")
     TWILIO_TOKEN = environ.get("TWILIO_FROM", "")
+
+    # Twitter login
+    TWITTER_CONSUMER_KEY = environ.get("TWITTER_CONSUMER_KEY", "")
+    TWITTER_CONSUMER_SECRET = environ.get("TWITTER_CONSUMER_SECRET", "")
+
+    # Facebook login
+    FACEBOOK_CONSUMER_KEY = environ.get("FACEBOOK_CONSUMER_KEY", "")
+    FACEBOOK_CONSUMER_SECRET = environ.get("FACEBOOK_CONSUMER_SECRET", "")
+
+    # GITHUB login
+    GITHUB_CONSUMER_KEY = environ.get("GITHUB_CONSUMER_KEY", "")
+    GITHUB_CONSUMER_SECRET = environ.get("GITHUB_CONSUMER_SECRET", "")
+
+
 
 
 class ProductionConfig(Config):
