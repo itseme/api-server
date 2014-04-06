@@ -21,6 +21,17 @@ class Config(object):
     CELERY_RESULT_SERIALIZER = 'json'
     CELERY_ENABLE_UTC = True
 
+    ## EMAIL config
+    MAIL_SERVER = environ.get("MAIL_SERVER", "")
+    MAIL_PORT = int(environ.get("MAIL_PORT", 25))
+    MAIL_USERNAME = environ.get("MAIL_USERNAME", "")
+    MAIL_PASSWORD = environ.get("MAIL_PASSWORD", "")
+    MAIL_DEFAULT_SENDER = environ.get("MAIL_DEFAULT_SENDER", "")
+
+    TWILIO_SID = environ.get("TWILIO_SID", "")
+    TWILIO_TOKEN = environ.get("TWILIO_TOKEN", "")
+    TWILIO_TOKEN = environ.get("TWILIO_FROM", "")
+
 
 class ProductionConfig(Config):
     REDIS_APP_CACHE = "redis://localhost:6379/0"
@@ -48,6 +59,10 @@ class DebugConfig(Config):
     REDIS_APP_CACHE = "redis://localhost:6379/0"
     BROKER_URL = "redis://localhost:6379/1"
     CELERY_RESULT_BACKEND = 'redis://localhost:6379/2'
+
+    TWILIO_FROM = "+15005550006"
+    TWILIO_SID = "ACed8a47da452b063795e2cb3a5dba0b4d"
+    TWILIO_TOKEN = environ.get("TWILIO_DEBUG_TOKEN", "")
 
     DEBUG = True
 
