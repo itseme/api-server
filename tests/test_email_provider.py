@@ -1,7 +1,7 @@
 
 from itseme.providers import EmailProvider
-from itseme.app import app
-from itseme.app import mail
+from itseme.app import app, mail
+from itseme.tasks import celery
 
 from mock import MagicMock, patch
 from flask import session, redirect
@@ -17,6 +17,7 @@ class TestEmailProvider(BaseTestMixin, unittest.TestCase):
     def setUp(self):
         super(TestEmailProvider, self).setUp()
         self.provider = EmailProvider(app)
+        celery.app = app
 
     def test_verify(self):
         doc = {"provider_id": "nope", "provider": "email",

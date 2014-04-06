@@ -9,6 +9,7 @@ def add_cross(response):
 
 app.config.from_object("itseme.config.DebugConfig")
 celery.conf.update(app.config)
+celery.app = app
 mail.init_app(app)
 
 if __name__ == '__main__':

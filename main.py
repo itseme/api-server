@@ -3,6 +3,7 @@ from itseme.tasks import celery, mail
 
 app.config.from_object("itseme.config.ProductionConfig")
 celery.conf.update(app.config)
+celery.app = app
 mail.init_app(app)
 
 if __name__ == '__main__':

@@ -12,10 +12,11 @@ mail = Mail()
 
 @celery.task()
 def send_confirm_email(to, code, url):
-    message = Message("It'se you? Then type {}".format(code))
-    message.add_recipient(to)
+    with celery.app.test_request_context('/version'):
+        message = Message("It'se you? Then type {}".format(code))
+        message.add_recipient(to)
 
-    message.body = """Hello
+        message.body = """Hello
 
 We've just received note, that this email wants
 to be registered with it-se.me . Please open this
@@ -35,7 +36,7 @@ this message and accept our apology for the bother.
 
 """.format(url, code)
 
-    message.html = """<p>Hello</p>
+        message.html = """<p>Hello</p>
     <p>We've just received note, that this email wants to be
     registered with it-se.me . Please open this URL to confirm
     this has been sent by you</p>
@@ -48,7 +49,7 @@ this message and accept our apology for the bother.
     <p>Thanks<br>Mario</p>
 """.format(url, code)
 
-    mail.send(message)
+        mail.send(message)
 
 
 @celery.task()
