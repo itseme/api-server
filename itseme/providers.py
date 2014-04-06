@@ -12,7 +12,7 @@ class Provider(object):
         self.app = app
 
     def register(self, doc):
-        pass
+        pass 
 
     def verify(self, doc):
         pass
@@ -91,6 +91,7 @@ class OAuthProvider(Provider):
         callback = None
         if request.args.get('next') or self.always_callback:
             callback = url_for('verify', hashkey=doc["_id"],
+                               _external=True,
                                next=request.args.get('next') or "/v1/verified")
 
         resp = self.remote.authorize(callback=callback)
@@ -144,6 +145,7 @@ class OAuthProvider(Provider):
 
 class Facebook(OAuthProvider):
     name = "facebook"
+    always_callback = True
     config = dict(base_url='https://graph.facebook.com/',
                   request_token_url=None,
                   access_token_url='/oauth/access_token',
@@ -153,7 +155,7 @@ class Facebook(OAuthProvider):
 
     def confirm(self, doc, data):
         user_data = self.remote.get("me?fields=username")
-        return user_data["username"] == doc["provider_id"]
+        return user_data.data["username"] == doc["provider_id"]
 
 
 class Twitter(OAuthProvider):

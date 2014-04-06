@@ -49,6 +49,7 @@ class Config(object):
 
 
 class ProductionConfig(Config):
+    SERVER_NAME = "api.it-se.me"
     REDIS_APP_CACHE = "redis://localhost:6379/0"
     BROKER_URL = "redis://{0}:{1}/1".format(
                 environ.get("REDIS_PORT_6379_TCP_ADDR", ""),
@@ -68,6 +69,7 @@ class ProductionConfig(Config):
 
 class DebugConfig(Config):
     SECRET_KEY = "DEBUG"
+    SERVER_NAME = "dev.localhost:5000"
     COUCHDB_SERVER = "http://localhost:5984/"
     COUCHDB_DATABASE = "itseme"
     REQUEST_THROTTLE = 10000
