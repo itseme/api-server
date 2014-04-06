@@ -45,6 +45,10 @@ class Config(object):
     GITHUB_CONSUMER_KEY = environ.get("GITHUB_CONSUMER_KEY", "")
     GITHUB_CONSUMER_SECRET = environ.get("GITHUB_CONSUMER_SECRET", "")
 
+    # jabber
+    JID = environ.get("JID", "")
+    JID_PASSWORD = environ.get("JID_PASSWORD", "")
+
 
 
 
