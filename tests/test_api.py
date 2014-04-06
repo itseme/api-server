@@ -105,22 +105,24 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
     def test_verify(self):
         mock_provider = MagicMock(spec=Provider)
         app.PROVIDERS["provider_two"] = lambda x: mock_provider
+        doc = self.database["PENDING_hashc6id8"]
 
         rv = self.client.get("/v1/verify/hashc6id8")
         expect(rv.status_code).to.equal(200)
         expect(json.loads(rv.data)["confirmed"]).to.be(True)
         expect(self.database).should_not.contain("PENDING_hashc6id8")
-        mock_provider.verify.assert_called_once_with(self.database["hashc6id8"])
+        mock_provider.verify.assert_called_once_with(doc)
 
     def test_verify_already_exists(self):
         mock_provider = MagicMock(spec=Provider)
         app.PROVIDERS["test_provider"] = lambda x: mock_provider
+        doc = self.database["PENDING_ALREADY_EXISTS"]
 
         rv = self.client.get("/v1/verify/ALREADY_EXISTS")
         expect(rv.status_code).to.equal(200)
         expect(json.loads(rv.data)["confirmed"]).to.be(True)
         expect(self.database).should_not.contain("PENDING_ALREADY_EXISTS")
-        mock_provider.verify.assert_called_once_with(self.database["ALREADY_EXISTS"])
+        mock_provider.verify.assert_called_once_with(doc)
 
 
     def test_verify_with_message(self):
@@ -128,6 +130,7 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         mock_provider = MagicMock(spec=Provider)
         mock_provider.verify.return_value = {"we want": "candy"}
         app.PROVIDERS["provider_two"] = lambda x: mock_provider
+        doc = self.database["PENDING_hashc6id8"]
 
         rv = self.client.get("/v1/verify/hashc6id8")
         expect(rv.status_code).to.equal(200)
@@ -135,7 +138,7 @@ class TestV1Api(BaseTestMixin, unittest.TestCase):
         expect(json.loads(rv.data)["we want"]).to.equal("candy")
         expect(self.database).should_not.contain("PENDING_hashc6id8")
         expect(self.database["hashc6id8"].has_key("provider")).to.be(False)
-        mock_provider.verify.assert_called_once_with(self.database["hashc6id8"])
+        mock_provider.verify.assert_called_once_with(doc)
 
 
     def test_verify_complaining_provider(self):

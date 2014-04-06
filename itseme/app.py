@@ -55,8 +55,8 @@ def connect_db():
 def verify(hashkey):
     try:
         PENDING_KEY = "PENDING_%s" % hashkey
-        doc = g.couch[PENDING_KEY]
-        if doc["status"] != "pending":
+        pending_doc = g.couch[PENDING_KEY]
+        if pending_doc["status"] != "pending":
             return json_error(403, "not_pending",
                               "Hash isn't pending",
                               {"confirmed": False})
@@ -66,28 +66,23 @@ def verify(hashkey):
 
     resp = {"confirmed": True}
 
-    provider_return = PROVIDERS[doc["provider"]](app).verify(doc)
+    provider_return = PROVIDERS[pending_doc["provider"]](app).verify(pending_doc)
     if provider_return:
         if isinstance(provider_return, Response):
             return provider_return
         resp.update(provider_return)
 
-    doc["confirmed"] = True
+    # only store the target, we don't care about much else
+    try:
+        doc = g.couch[hashkey]
+    except ResourceNotFound:
+        doc = {"target": pending_doc["target"]}
+    else:
+        doc["target"] = pending_doc["target"]
 
-    for x in ("provider", "provider_id"):
-        # we do not want those in here
-        try:
-            del doc[x]
-        except KeyError:
-            pass
-
+    g.couch[hashkey] = doc
     # remove it from the old position
     del g.couch[PENDING_KEY]
-    try:
-        g.couch[hashkey] = doc
-    except ResourceConflict:
-        del g.couch[hashkey]
-        g.couch[hashkey] = doc
 
     return jsonify(resp)
 
@@ -99,7 +94,7 @@ def _is_confirmed(target, prefix=None):
 
 def _is_confirmed_hash(hashkey):
     try:
-        return g.couch[hashkey]["status"] == "confirmed"
+        return g.couch[hashkey] is not None
     except (KeyError, ResourceNotFound):
         return False
 
@@ -145,8 +140,7 @@ def register(provider, provider_id, target):
 def confirm_one(hashkey, target):
     try:
         doc = g.couch[hashkey]
-        return jsonify({"confirmed": doc["status"] == "confirmed" and
-                        doc["target"] == target.strip()})
+        return jsonify({"confirmed": doc["target"] == target.strip()})
     except (KeyError, ResourceNotFound):
         return jsonify({"confirmed": False})
 
@@ -171,8 +165,7 @@ def confirm_many():
     for hashkey in to_confirm:
         try:
             doc = g.couch[hashkey]
-            if doc["status"] != "confirmed" or \
-                    doc["target"] != target:
+            if doc["target"] != target:
                 break
         except (KeyError, ResourceNotFound):
             break
@@ -220,7 +213,7 @@ def contact():
             protocol = info["protocol"]
             provider_id = info["id"]
             doc = g.couch[_make_key(protocol, provider_id)]
-            if doc["status"] == "confirmed" and doc["target"] == target:
+            if doc["target"] == target:
                 confirmed_info.append(dict(confirmed=True,
                                            protocol=protocol,
                                            id=provider_id
@@ -236,7 +229,7 @@ def contact():
     for hashkey in contacts:
         try:
             doc = g.couch[hashkey]
-            if doc["status"] == "confirmed" and doc["target"] != target:
+            if doc["target"] != target:
                 contact_targets.append(doc["target"])
         except (KeyError, ResourceNotFound):
             pass
