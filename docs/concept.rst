@@ -62,6 +62,11 @@ properly authenticated discards the medium and specific id. The only
 thing the server now knows about is a one-way-hash that belongs to
 a given target it shall contact.
 
+
+.. image:: _static/registration_verification_flow.png
+   :alt: registration flow
+
+
 Amys service does this with a few contact details, for example the
 phone number (currently only SMS is supported), her Facebook and
 Twitter Account, Github and Email-Address. For each access-type
@@ -119,6 +124,10 @@ to Amy. One call with both the hash and the account the message was
 sent from to the trusted instance, confirms that indeed those are
 the connected details and Michaels phone can be sure the account
 belongs to Amy.
+
+
+.. image:: _static/contact_flow.png
+   :alt: Contact flow
 
 The trusted instance doesn't keep records of who connected whom nor
 where look ups came from. It discarded all details information and
