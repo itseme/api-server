@@ -1,0 +1,34 @@
+web:
+  build: .
+  ports:
+  - "5000:5000"
+  command: /bin/bash -c 'cd /code; python main.py'
+  links:
+   - redis
+   - couch
+worker:
+  build: .
+  command: /bin/bash -c 'cd /code; celery worker --app=main.celery --loglevel=info --concurrency=10 --hostname=worker%I.%h --maxtasksperchild=100 --autoscale=10,3'
+  links:
+   - redis
+   - couch
+flower:
+  build: .
+  command: /bin/bash -c 'cd /code; celery flower --app=main.celery'
+  ports:
+  - "5555:5555"
+  links:
+   - redis
+   - couch
+redis:
+  image: crosbymichael/redis
+couch:
+  image: klaemo/couchdb
+nginx:
+  image: dockerfile/nginx
+  ports:
+  - "80:80"
+  volumes:
+  - "conf/nginx-sites-enabled/:/etc/nginx/sites-enabled/"
+  links:
+   - web
