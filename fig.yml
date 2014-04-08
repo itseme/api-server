@@ -6,12 +6,14 @@ web:
   links:
    - redis
    - couch
+  environment: !include env.yml
 worker:
   build: .
   command: /bin/bash -c 'cd /code; celery worker --app=main.celery --loglevel=info --concurrency=10 --hostname=worker%I.%h --maxtasksperchild=100 --autoscale=10,3'
   links:
    - redis
    - couch
+  environment: !include env.yml
 flower:
   build: .
   command: /bin/bash -c 'cd /code; celery flower --app=main.celery'
