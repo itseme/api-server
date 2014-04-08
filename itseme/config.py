@@ -52,7 +52,7 @@ class Config(object):
 
 
 class ProductionConfig(Config):
-    SECRET_KEY = environ.get("SECRET_KEY", ""),
+    SECRET_KEY = environ.get("SECRET_KEY", "")
     SERVER_NAME = "api.it-se.me"
     REDIS_APP_CACHE = "redis://{0}:{1}/0".format(
                 environ.get("REDIS_1_PORT_6379_TCP_ADDR", ""),
