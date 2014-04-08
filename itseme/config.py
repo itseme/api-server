@@ -31,7 +31,7 @@ class Config(object):
     # Twilio for SMS/Phone support
     TWILIO_SID = environ.get("TWILIO_SID", "")
     TWILIO_TOKEN = environ.get("TWILIO_TOKEN", "")
-    TWILIO_TOKEN = environ.get("TWILIO_FROM", "")
+    TWILIO_FROM = environ.get("TWILIO_FROM", "")
 
     # Twitter login
     TWITTER_CONSUMER_KEY = environ.get("TWITTER_CONSUMER_KEY", "")
