@@ -51,22 +51,25 @@ class Config(object):
 
 
 
-
 class ProductionConfig(Config):
+    SECRET_KEY = environ.get("SECRET_KEY", ""),
     SERVER_NAME = "api.it-se.me"
-    REDIS_APP_CACHE = "redis://localhost:6379/0"
+    REDIS_APP_CACHE = "redis://{0}:{1}/0".format(
+                environ.get("REDIS_1_PORT_6379_TCP_ADDR", ""),
+                environ.get("REDIS_1_PORT_6379_TCP_PORT", "")
+                )
     BROKER_URL = "redis://{0}:{1}/1".format(
-                environ.get("REDIS_PORT_6379_TCP_ADDR", ""),
-                environ.get("REDIS_PORT_6379_TCP_PORT", "")
+                environ.get("REDIS_1_PORT_6379_TCP_ADDR", ""),
+                environ.get("REDIS_1_PORT_6379_TCP_PORT", "")
                 )
     CELERY_RESULT_BACKEND = "redis://{0}:{1}/2".format(
-                environ.get("REDIS_PORT_6379_TCP_ADDR", ""),
-                environ.get("REDIS_PORT_6379_TCP_PORT", "")
+                environ.get("REDIS_1_PORT_6379_TCP_ADDR", ""),
+                environ.get("REDIS_1_PORT_6379_TCP_PORT", "")
                 )
 
     COUCHDB_SERVER = "http://{0}:{1}/".format(
-                environ.get("COUCH_PORT_5984_TCP_ADDR", ""),
-                environ.get("COUCH_PORT_5984_TCP_PORT", "")
+                environ.get("COUCH_1_PORT_5984_TCP_ADDR", ""),
+                environ.get("COUCH_1_PORT_5984_TCP_PORT", "")
                 )
     COUCHDB_DATABASE = "itseme"
 
