@@ -1,6 +1,13 @@
 from itseme.app import app
 from itseme.tasks import celery, mail
 
+
+@app.after_request
+def add_cross(response):
+    response.headers.add("Access-Control-Allow-Origin", "www.it-se.me")
+    return response
+
+
 app.config.from_object("itseme.config.ProductionConfig")
 celery.conf.update(app.config)
 celery.app = app
