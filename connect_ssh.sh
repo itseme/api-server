@@ -1,0 +1,1 @@
+ssh -L 15555:localhost:5555 -L 15000:localhost:15000 -L10080:localhost:80 root@162.243.120.121
