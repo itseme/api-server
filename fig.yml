@@ -1,7 +1,7 @@
 web:
   build: .
   ports:
-  - "5000:5000"
+  - "5000:80"
   command: /bin/bash -c 'cd /code; python main.py'
   links:
    - redis
@@ -26,11 +26,9 @@ redis:
   image: crosbymichael/redis
 couch:
   image: klaemo/couchdb
-nginx:
-  image: dockerfile/nginx
+haproxy:
+  image: tutum/haproxy-http
   ports:
   - "80:80"
-  volumes:
-  - "conf/nginx-sites-enabled/:/etc/nginx/sites-enabled/"
   links:
    - web
