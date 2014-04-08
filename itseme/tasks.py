@@ -40,7 +40,7 @@ this message and accept our apology for the bother.
     <p>We've just received note, that this email wants to be
     registered with it-se.me . Please open this URL to confirm
     this has been sent by you</p>
-    <p><a href="{0}">{0}<p>
+    <p><a href="{0}">{0}</a><p>
     <p>Or type the following code into your app:
         <br><strong>{1}</strong>
     </p>

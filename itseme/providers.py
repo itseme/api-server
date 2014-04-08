@@ -48,7 +48,8 @@ class EmailProvider(SimpleVerifyMixin, Provider):
     GEN_LENGTH = 6
 
     def _register(self, confirm_id, doc, code):
-        url = url_for('verify', hashkey=doc["_id"], code=code)
+        url = url_for('verify', _external=True,
+                      hashkey=doc["_id"], code=code)
         tasks.send_confirm_email.delay(confirm_id, code, url)
 
 
