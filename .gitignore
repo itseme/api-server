@@ -54,3 +54,5 @@ coverage.xml
 # Sphinx documentation
 docs/_build/.DS_Store
 .DS_Store
+env.yml
+dump.rdb
