@@ -1,3 +1,5 @@
+env $WEB_1_PORT_5000_TCP_ADDR;
+env $WEB_1_PORT_5000_TCP_PORT;
 
 server {
     ### server port and name ###
@@ -27,5 +29,5 @@ server {
 }
 
 upstream appserver {
-          server $WEB_1_PORT_5000_TCP_ADDR:$WEB_1_PORT_5000_TCP_PORT;
+          server $ENV{"WEB_1_PORT_5000_TCP_ADDR"}:$ENV{"WEB_1_PORT_5000_TCP_PORT"};
     }
