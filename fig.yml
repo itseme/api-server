@@ -1,25 +1,31 @@
+serf:
+  image: ctlc/serf
+  ports:
+    - 7373
+    - 7946
 web:
   build: .
-  ports:
-  - "5000:80"
-  command: /bin/bash -c 'cd /code; python main.py'
+  command: sh bin/start_web.sh
   links:
+   - serf
    - redis
    - couch
   environment: !include env.yml
 worker:
   build: .
-  command: /bin/bash -c 'cd /code; celery worker --app=main.celery --loglevel=info --concurrency=10 --hostname=worker%I.%h --maxtasksperchild=100 --autoscale=10,3'
+  command: sh bin/start_worker.sh
   links:
+   - serf
    - redis
    - couch
   environment: !include env.yml
 flower:
   build: .
-  command: /bin/bash -c 'cd /code; celery flower --app=main.celery'
+  command: sh bin/start_flower.sh
   ports:
   - "5555:5555"
   links:
+   - serf
    - redis
    - couch
 redis:
@@ -27,8 +33,10 @@ redis:
 couch:
   image: klaemo/couchdb
 haproxy:
-  image: tutum/haproxy-http
+  image: ctlc/haproxy-serf
   ports:
   - "80:80"
   links:
    - web
+   - serf
+  environment: !include env.yml

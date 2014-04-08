@@ -1,6 +1,0 @@
-in production:
-
-in debug:
-celery flower --app=main_debug.celery
-python main_debug.py
-celery worker --app=main_debug.celery --loglevel=info --concurrency=10 --hostname=worker%I.%h --maxtasksperchild=100 --autoscale=10,3

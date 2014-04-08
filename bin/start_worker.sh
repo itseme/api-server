@@ -1,0 +1,2 @@
+/serf/serf agent -tag role=worker -join $SERF_1_PORT_7946_TCP_ADDR:$SERF_1_PORT_7946_TCP_PORT &
+celery worker --app=main.celery --loglevel=info --concurrency=10 --hostname=worker%I.%h --maxtasksperchild=100 --autoscale=10,3
